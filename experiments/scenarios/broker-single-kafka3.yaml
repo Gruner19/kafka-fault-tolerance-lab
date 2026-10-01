@@ -1,0 +1,22 @@
+name: broker-single-kafka3
+topic: orders
+bootstrap: localhost:9092
+prometheus_url: http://localhost:9090
+producer_rate: 8
+baseline_seconds: 60
+recovery_seconds: 90
+consumer_group: fault-single-kafka3
+ssh_key: /home/gruner-sanchez/Descargas/SSH/kafka-cluster-key.pem
+ssh_user: ubuntu
+
+brokers:
+  - { host: 18.225.31.122, node_id: 1 }
+  - { host: 3.22.234.84, node_id: 2 }
+  - { host: 18.222.141.214, node_id: 3 }
+
+faults:
+  - kind: broker-failure
+    at: 60.0
+    broker: 18.222.141.214
+    down_for: 30.0
+    restart: true

@@ -1,0 +1,31 @@
+# Experimentación
+output/
+*.pyc
+__pycache__/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate*
+terraform/*.tfvars
+
+# Inventario generado por render_inventory.sh
+ansible/inventories/hosts.yml
+
+# Claves y secretos
+*.pem
+*.key
+
+# Entornos Python
+.venv/
+scripts/app/.venv/
+venv/
+env/
+*.egg-info/
+
+# Archivos locales y resultados temporales
+*.log
+.pytest_cache/
+.DS_Store
+.idea/
+.vscode/settings.json

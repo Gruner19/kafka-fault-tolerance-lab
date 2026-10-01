@@ -1,0 +1,23 @@
+[Unit]
+Description=Apache Kafka Server (KRaft, node {{ node_id }})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kafka
+Group=kafka
+WorkingDirectory={{ kafka_install_dir }}
+Environment=KAFKA_HEAP_SIZE=512M
+Environment=PATH=/usr/bin:/usr/local/bin:/bin
+#Exports JMX vía agente Prometheus
+Environment=KAFKA_OPTS=-javaagent:{{ kafka_install_dir }}/jmx_prometheus_javaagent.jar=9100:{{ kafka_install_dir }}/kafka-jmx-config.yml
+ExecStart={{ kafka_install_dir }}/bin/kafka-server-start.sh {{ kafka_install_dir }}/config/kraft/server-node{{ node_id }}.properties
+ExecStop={{ kafka_install_dir }}/bin/kafka-server-stop.sh
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=100000
+LimitNPROC=100000
+
+[Install]
+WantedBy=multi-user.target

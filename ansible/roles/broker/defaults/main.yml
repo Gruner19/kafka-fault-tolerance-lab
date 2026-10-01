@@ -1,0 +1,14 @@
+# Parámetros de configuración del broker (tolerancia a fallos).
+kafka_install_dir: /opt/kafka
+kafka_version: 3.7.2
+kafka_dist: 2.13
+broker_data_dir: /var/lib/kafka/data
+listen_port: 9092
+controller_port: 9093
+
+num_partitions: 3
+default_replication_factor: 3
+min_insync_replicas: 2
+offsets_topic_replication_factor: 3
+transaction_state_log_replication_factor: 3
+transaction_state_log_min_isr: 2

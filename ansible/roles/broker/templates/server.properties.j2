@@ -1,0 +1,34 @@
+# Configuración de nodo Kafka (KRaft) - generada por Ansible
+# node.id={{ node_id }} · hostname={{ inventory_hostname }}
+
+# Identidad
+process.roles=broker,controller
+node.id={{ node_id }}
+
+# Quórum de controladores
+controller.quorum.voters={% for host in groups['brokers'] %}{{ hostvars[host]['node_id'] }}@{{ host }}:{{ controller_port }}{% if not loop.last %},{% endif %}{% endfor %}
+
+# Listeners
+listeners=PLAINTEXT://:{{ listen_port }},CONTROLLER://:{{ controller_port }}
+advertised.listeners=PLAINTEXT://{{ broker_ip | default(inventory_hostname) }}:{{ listen_port }}
+inter.broker.listener.name=PLAINTEXT
+controller.listener.names=CONTROLLER
+listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+
+# Almacenamiento
+log.dirs={{ broker_data_dir }}
+
+# Tolerancia a fallos
+num.partitions={{ num_partitions }}
+default.replication.factor={{ default_replication_factor }}
+min.insync.replicas={{ min_insync_replicas }}
+offsets.topic.replication.factor={{ offsets_topic_replication_factor }}
+transaction.state.log.replication.factor={{ transaction_state_log_replication_factor }}
+transaction.state.log.min.isr={{ transaction_state_log_min_isr }}
+
+# Retención
+log.retention.hours=168
+log.segment.bytes=1073741824
+
+# Nombre del nodo para JMX etiquetado
+broker.id={{ node_id }}

@@ -1,0 +1,18 @@
+[Unit]
+Description=Kafka Exporter (consumer lag)
+After=network-online.target
+
+[Service]
+Type=simple
+User=monitor
+Group=monitor
+ExecStart=/usr/local/bin/kafka_exporter \
+{% for host in groups['brokers'] %}
+  --kafka.server={{ hostvars[host]['broker_ip'] }}:9092 \
+{% endfor %}
+  --web.listen-address=0.0.0.0:{{ kafka_exporter_port }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

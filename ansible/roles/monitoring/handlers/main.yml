@@ -1,0 +1,24 @@
+---
+- name: restart prometheus
+  become: true
+  ansible.builtin.systemd:
+    name: prometheus
+    state: restarted
+
+- name: restart kafka-exporter
+  become: true
+  ansible.builtin.systemd:
+    name: kafka-exporter
+    state: restarted
+
+- name: restart node-exporter
+  become: true
+  ansible.builtin.systemd:
+    name: node-exporter
+    state: restarted
+
+- name: restart grafana
+  become: true
+  ansible.builtin.systemd:
+    name: grafana-server
+    state: restarted

@@ -1,0 +1,18 @@
+[Unit]
+Description=Prometheus
+After=network-online.target
+
+[Service]
+Type=simple
+User=monitor
+Group=monitor
+ExecStart={{ prometheus_install_dir }}/prometheus \
+  --config.file={{ prometheus_install_dir }}/prometheus.yml \
+  --storage.tsdb.path={{ prometheus_data_dir }} \
+  --storage.tsdb.retention.time=15d \
+  --web.listen-address=0.0.0.0:{{ prometheus_port }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

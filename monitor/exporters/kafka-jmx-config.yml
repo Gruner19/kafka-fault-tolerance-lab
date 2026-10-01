@@ -1,0 +1,40 @@
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  # Mensajes/byte por segundo
+  - pattern: kafka.server<type=BrokerTopicMetrics, name=MessagesInPerSec><>Count
+    name: kafka_server_brokertopicmetrics_messagesin_total
+    type: COUNTER
+  - pattern: kafka.server<type=BrokerTopicMetrics, name=BytesInPerSec><>Count
+    name: kafka_server_brokertopicmetrics_bytesin_total
+    type: COUNTER
+  - pattern: kafka.server<type=BrokerTopicMetrics, name=BytesOutPerSec><>Count
+    name: kafka_server_brokertopicmetrics_bytesout_total
+    type: COUNTER
+
+  # Tolerancia a fallos
+  - pattern: kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value
+    name: kafka_server_replicamanager_underreplicatedpartitions
+    type: GAUGE
+  - pattern: kafka.controller<type=KafkaController, name=OfflinePartitionsCount><>Value
+    name: kafka_controller_kafkacontroller_offlinepartitionscount
+    type: GAUGE
+  - pattern: kafka.controller<type=KafkaController, name=ActiveControllerCount><>Value
+    name: kafka_controller_kafkacontroller_activecontrollercount
+    type: GAUGE
+  - pattern: kafka.server<type=ReplicaManager, name=IsrShrinksPerSec><>Count
+    name: kafka_server_replicamanager_isrshrinks_total
+    type: COUNTER
+  - pattern: kafka.server<type=ReplicaManager, name=IsrGrowsPerSec><>Count
+    name: kafka_server_replicamanager_isrgrows_total
+    type: COUNTER
+  - pattern: kafka.server<type=ReplicaManager, name=FailedReplicationRequests><>Count
+    name: kafka_server_replicamanager_failedreplicationrequests_total
+    type: COUNTER
+
+  # Latencia
+  - pattern: kafka.network<type=RequestMetrics, name=(TotalTimeMs|RequestQueueTimeMs), request=(.+)><>99thPercentile
+    name: kafka_network_requestmetrics_$1_99thpercentile
+    type: GAUGE
+    labels:
+      request: "$2"

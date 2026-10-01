@@ -1,0 +1,13 @@
+prometheus_install_dir: /opt/prometheus
+prometheus_data_dir: /opt/prometheus/data
+prometheus_port: 9090
+kafka_exporter_port: 9308
+node_exporter_port: 9101
+node_exporter_version: "1.7.0"
+grafana_admin_pass: admin
+
+# Lista de brokers para quórum y túneles (poblada desde inventory).
+broker_hosts: "{{ groups['brokers'] }}"
+
+# Directorio local (casa) usado para render plantillas con IPs.
+ansible_user_host: ubuntu

@@ -1,0 +1,234 @@
+# ---------------------------------------------------------------------------
+# FASE 0: Instalación (para VMs que ya existen y no ejecutaron cloud-init)
+# ---------------------------------------------------------------------------
+- name: Instalar dependencias para añadir el repo de Grafana
+  become: true
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - software-properties-common
+      - wget
+      - gpg
+      - tar
+      - openjdk-17-jre
+      - python3-venv
+      - python3-pip
+    state: present
+    update_cache: true
+
+- name: Descargar clave GPG oficial de Grafana
+  become: true
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /usr/share/keyrings/grafana.gpg.asc
+    mode: "0644"
+
+- name: Convertir clave a formato binario (dearmor)
+  become: true
+  ansible.builtin.shell:
+    cmd: gpg --dearmor -o /usr/share/keyrings/grafana.gpg /usr/share/keyrings/grafana.gpg.asc
+    creates: /usr/share/keyrings/grafana.gpg
+
+- name: Añadir repositorio apt de Grafana
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com/ stable main
+    filename: grafana
+    state: present
+
+- name: Instalar Grafana
+  become: true
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+    update_cache: true
+
+- name: Habilitar y arrancar Grafana
+  become: true
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: true
+    daemon_reload: true
+    state: started
+
+- name: Crear usuario de sistema monitor
+  become: true
+  ansible.builtin.user:
+    name: monitor
+    system: true
+    shell: /bin/bash
+    create_home: true
+
+- name: Crear usuario de sistema node_exporter
+  become: true
+  ansible.builtin.user:
+    name: node_exporter
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Añadir brokers al /etc/hosts del monitor
+  become: true
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} ANSIBLE KAFKA BROKERS"
+    block: |
+      {% for host in groups['brokers'] %}
+      {{ hostvars[host]['broker_ip'] | default(hostvars[host]['ansible_host']) }} {{ host }}
+      {% endfor %}
+
+- name: Comprobar si node_exporter está instalado
+  ansible.builtin.stat:
+    path: /usr/local/bin/node_exporter
+  register: node_exporter_path
+
+- name: Descargar node_exporter (si no está)
+  become: true
+  ansible.builtin.unarchive:
+    src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    dest: /opt
+    remote_src: true
+  when: not node_exporter_path.stat.exists
+
+- name: Instalar node_exporter en /usr/local/bin
+  become: true
+  ansible.builtin.copy:
+    src: "/opt/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+    dest: /usr/local/bin/node_exporter
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+    force: false
+  when: not node_exporter_path.stat.exists
+
+- name: Comprobar si /opt/prometheus existe
+  ansible.builtin.stat:
+    path: /opt/prometheus
+  register: prometheus_path
+
+- name: Descargar Prometheus (si no está)
+  become: true
+  ansible.builtin.unarchive:
+    src: "https://github.com/prometheus/prometheus/releases/download/v2.48.0/prometheus-2.48.0.linux-amd64.tar.gz"
+    dest: /opt
+    remote_src: true
+    owner: monitor
+    group: monitor
+  when: not prometheus_path.stat.exists
+
+- name: Crear enlace simbólico /opt/prometheus
+  become: true
+  ansible.builtin.file:
+    src: /opt/prometheus-2.48.0.linux-amd64
+    dest: /opt/prometheus
+    state: link
+    force: true
+
+- name: Asegurar data dir de Prometheus
+  become: true
+  ansible.builtin.file:
+    path: "{{ prometheus_data_dir }}"
+    state: directory
+    owner: monitor
+    group: monitor
+
+- name: Comprobar si kafka_exporter está instalado
+  ansible.builtin.stat:
+    path: /usr/local/bin/kafka_exporter
+  register: kexp_path
+
+- name: Descargar kafka_exporter (si no está)
+  become: true
+  ansible.builtin.unarchive:
+    src: "https://github.com/danielqsj/kafka_exporter/releases/download/v1.7.0/kafka_exporter-1.7.0.linux-amd64.tar.gz"
+    dest: /opt
+    remote_src: true
+  when: not kexp_path.stat.exists
+
+- name: Instalar kafka_exporter en /usr/local/bin
+  become: true
+  ansible.builtin.copy:
+    src: "/opt/kafka_exporter-1.7.0.linux-amd64/kafka_exporter"
+    dest: /usr/local/bin/kafka_exporter
+    mode: "0755"
+    remote_src: true
+    force: false
+  when: not kexp_path.stat.exists
+
+# ---------------------------------------------------------------------------
+# FASE 1: Configuración
+# ---------------------------------------------------------------------------
+- name: Plantilla prometheus.yml con IPs reales de brokers
+  become: true
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_install_dir }}/prometheus.yml"
+    owner: monitor
+    group: monitor
+    mode: "0644"
+  notify: restart prometheus
+
+- name: Unit systemd de Prometheus
+  become: true
+  ansible.builtin.template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart prometheus
+
+- name: Unit systemd de kafka_exporter
+  become: true
+  ansible.builtin.template:
+    src: kafka-exporter.service.j2
+    dest: /etc/systemd/system/kafka-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kafka-exporter
+
+- name: Unit systemd de node_exporter
+  become: true
+  ansible.builtin.template:
+    src: node-exporter.service.j2
+    dest: /etc/systemd/system/node-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart node-exporter
+
+- name: Habilitar y arrancar Prometheus
+  become: true
+  ansible.builtin.systemd:
+    name: prometheus
+    enabled: true
+    daemon_reload: true
+    state: started
+
+- name: Habilitar y arrancar kafka_exporter
+  become: true
+  ansible.builtin.systemd:
+    name: kafka-exporter
+    enabled: true
+    daemon_reload: true
+    state: started
+
+- name: Habilitar y arrancar node_exporter
+  become: true
+  ansible.builtin.systemd:
+    name: node-exporter
+    enabled: true
+    daemon_reload: true
+    state: started
+
+- name: Configurar Grafana (datasource + dashboards)
+  become: true
+  ansible.builtin.template:
+    src: grafana-datasources.yml.j2
+    dest: /etc/grafana/provisioning/datasources/kafka.yml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart grafana

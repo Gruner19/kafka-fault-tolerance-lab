@@ -1,0 +1,29 @@
+all:
+  vars:
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: "{{ lookup('env', 'SSH_PRIVATE_KEY') }}"
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+    ansible_python_interpreter: /usr/bin/python3
+    kafka_cluster_id: "REPLACE_WITH_SHARED_KAFKA_CLUSTER_ID"
+    kafka_version: "3.7.2"
+    kafka_dist: "2.13"
+  children:
+    brokers:
+      hosts:
+        kafka-1:
+          ansible_host: "PUBLIC_IP_KAFKA_1"
+          broker_ip: "PRIVATE_IP_KAFKA_1"
+          node_id: 1
+        kafka-2:
+          ansible_host: "PUBLIC_IP_KAFKA_2"
+          broker_ip: "PRIVATE_IP_KAFKA_2"
+          node_id: 2
+        kafka-3:
+          ansible_host: "PUBLIC_IP_KAFKA_3"
+          broker_ip: "PRIVATE_IP_KAFKA_3"
+          node_id: 3
+    monitor:
+      hosts:
+        monitor:
+          ansible_host: "PUBLIC_IP_MONITOR"
+          broker_ip: "PRIVATE_IP_MONITOR"

@@ -1,0 +1,20 @@
+name: full-restart
+topic: orders
+bootstrap: localhost:9092
+prometheus_url: http://localhost:9090
+producer_rate: 6
+baseline_seconds: 45
+recovery_seconds: 60
+consumer_group: order-processor-group
+ssh_key: /home/gruner-sanchez/Descargas/SSH/kafka-cluster-key.pem
+ssh_user: ubuntu
+
+brokers:
+  - { host: 18.225.31.122, node_id: 1 }
+  - { host: 3.22.234.84, node_id: 2 }
+  - { host: 18.222.141.214, node_id: 3 }
+
+faults:
+  - kind: full-restart
+    at: 45.0
+    down_for: 30.0

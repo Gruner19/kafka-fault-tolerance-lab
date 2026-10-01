@@ -1,0 +1,15 @@
+# Playbook principal: configura brokers + stack de monitoreo.
+# Fase 2 tras terraform apply.
+#
+#   SSH_PRIVATE_KEY=/home/gruner-sanchez/Descargas/SSH/kafka-cluster-key.pem ansible-playbook -i inventories/hosts.yml site.yml
+- name: Configurar brokers Kafka (KRaft)
+  hosts: brokers
+  gather_facts: true
+  roles:
+    - broker
+
+- name: Configurar VM de monitoreo (Prometheus + Grafana + exporters)
+  hosts: monitor
+  gather_facts: true
+  roles:
+    - monitoring

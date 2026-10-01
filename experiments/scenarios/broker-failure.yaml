@@ -1,0 +1,80 @@
+name: broker-failure
+topic: orders
+bootstrap: localhost:9092
+prometheus_url: http://localhost:9090
+producer_rate: 8          # mensajes/seg
+baseline_seconds: 60      # línea base sin fallos
+recovery_seconds: 90      # observación tras recuperación
+consumer_group: order-processor-group
+ssh_key: /home/gruner-sanchez/Descargas/SSH/kafka-cluster-key.pem
+ssh_user: ubuntu
+
+brokers:
+  - { host: 18.225.31.122, node_id: 1 }
+  - { host: 3.22.234.84, node_id: 2 }
+  - { host: 18.222.141.214, node_id: 3 }
+
+faults:
+  # Todos los escenarios posibles para las 3 VMs (individuales, pares, triple)
+  - kind: broker-failure
+    at: 60.0
+    broker: 18.225.31.122
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 90.0
+    broker: 3.22.234.84
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 120.0
+    broker: 18.222.141.214
+    down_for: 30.0
+    restart: true
+  # Pares
+  - kind: broker-failure
+    at: 150.0
+    broker: 18.225.31.122
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 150.0
+    broker: 3.22.234.84
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 180.0
+    broker: 18.225.31.122
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 180.0
+    broker: 18.222.141.214
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 210.0
+    broker: 3.22.234.84
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 210.0
+    broker: 18.222.141.214
+    down_for: 30.0
+    restart: true
+  # Triple
+  - kind: broker-failure
+    at: 240.0
+    broker: 18.225.31.122
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 240.0
+    broker: 3.22.234.84
+    down_for: 30.0
+    restart: true
+  - kind: broker-failure
+    at: 240.0
+    broker: 18.222.141.214
+    down_for: 30.0
+    restart: true
