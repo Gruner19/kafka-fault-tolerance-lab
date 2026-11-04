@@ -97,6 +97,7 @@ class SyncNode:
                 "queue_len": snapshot["queue_len"],
                 "queue_head": snapshot["queue_head"],
                 "sync_enabled": self.sync_enabled,
+                "capacity": self.args.capacity,
             }
 
     # -- threads ----------------------------------------------------------
@@ -221,6 +222,7 @@ class SyncNode:
                 resource=RESOURCE,
                 state=self.state,
                 log=self.logger.log,
+                capacity=self.args.capacity,
             )
 
         self.observer = ObserverClient(self.args.observer_host, self.args.observer_port)
@@ -290,6 +292,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--observer-host", default="127.0.0.1")
     parser.add_argument("--observer-port", type=int, required=True)
     parser.add_argument("--sync-enabled", type=lambda v: v.lower() in ("1", "true", "yes", "y"), default=True)
+    parser.add_argument("--capacity", type=int, default=1, help="K>1 = extensão semáforo")
     parser.add_argument("--cs-min", type=float, default=0.2)
     parser.add_argument("--cs-max", type=float, default=1.0)
     parser.add_argument("--seed", type=int, default=0)

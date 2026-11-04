@@ -40,7 +40,10 @@ class QueueState:
     é usada como mecanismo de coordenação entre nós.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, capacity: int = 1) -> None:
+        if capacity < 1:
+            raise ValueError("capacity deve ser >= 1")
+        self.capacity = capacity
         self._cond = threading.Condition()
         self._queue: list[QueueEntry] = []
         self._seen: set[str] = set()
@@ -121,22 +124,33 @@ class QueueState:
         raise ValueError(f"tipo de mensagem inválido: {message.type!r}")
 
     # -- espera -----------------------------------------------------------
-    def wait_until_head(
-        self, process_id: str, request_id: str, timeout: Optional[float] = None,
+    def wait_until_position(
+        self,
+        process_id: str,
+        request_id: str,
+        limit: int = 1,
+        timeout: Optional[float] = None,
     ) -> bool:
-        """Bloqueia até que (process_id, request_id) seja a cabeça da fila.
+        """Bloqueia até que (process_id, request_id) esteja entre os `limit` primeiros.
+
+        `limit=1` implementa o mutex do B6 (só a cabeça entra). `limit=K>1`
+        implementa a extensão semáforo: até K pedidos podem estar em CS.
 
         O timeout existe apenas para testes/encerramento; o protocolo não usa
         leases nem timeouts para autorizar (seção 2.4).
         """
+        if limit < 1:
+            raise ValueError("limit deve ser >= 1")
         deadline = None if timeout is None else time.monotonic() + timeout
         with self._cond:
             while True:
                 if self._aborted:
                     return False
-                head = self._queue[0] if self._queue else None
-                if head is not None and head.process_id == process_id and head.request_id == request_id:
-                    return True
+                for index, entry in enumerate(self._queue):
+                    if entry.process_id == process_id and entry.request_id == request_id:
+                        if index < limit:
+                            return True
+                        break
                 if deadline is None:
                     self._cond.wait()
                     continue
@@ -144,6 +158,13 @@ class QueueState:
                 if remaining <= 0:
                     return False
                 self._cond.wait(remaining)
+
+    def wait_until_head(
+        self, process_id: str, request_id: str, timeout: Optional[float] = None,
+    ) -> bool:
+        return self.wait_until_position(
+            process_id, request_id, limit=1, timeout=timeout,
+        )
 
     def abort(self) -> None:
         """Desbloqueia esperas no encerramento do processo (não é parte do protocolo)."""
@@ -171,13 +192,17 @@ class SyncProtocol:
         state: Optional[QueueState] = None,
         log: Optional[LogFn] = None,
         timeout: Optional[float] = None,
+        capacity: int = 1,
     ) -> None:
+        if capacity < 1:
+            raise ValueError("capacity deve ser >= 1")
         self.process_id = process_id
         self.resource = resource
         self.publish = publish
         self.state = state if state is not None else QueueState()
         self._log = log
         self.timeout = timeout
+        self.capacity = capacity
 
     def _emit(self, event: str, **fields: object) -> None:
         if self._log is not None:
@@ -188,8 +213,10 @@ class SyncProtocol:
         offset = self.publish(message)
         # Só registra a aquisição depois que a própria mensagem foi entregue e o
         # pedido virou cabeça: assim `queue_head` é sempre o pedido autorizado.
-        if not self.state.wait_until_head(self.process_id, request_id, timeout=self.timeout):
-            raise TimeoutError(f"ACQUIRE {request_id} não chegou à cabeça da fila")
+        if not self.state.wait_until_position(
+            self.process_id, request_id, limit=self.capacity, timeout=self.timeout,
+        ):
+            raise TimeoutError(f"ACQUIRE {request_id} não chegou à posição de entrada")
         snapshot = self.state.snapshot()
         self._emit(
             ACQUIRE,

@@ -49,6 +49,7 @@ permissão. A exclusão mútua é implementada pela regra da fila em cada proces
 ```
 tp2/
 ├── README.md
+├── AWS.md                         # preparação/conexão das VMs
 ├── DECISIONES.md
 ├── requirements.txt              # versões fixadas (==)
 ├── pytest.ini
@@ -68,6 +69,7 @@ tp2/
 │   ├── demo_local.py             # demonstração da fase 3
 │   ├── smoke_dev.py
 │   ├── check_mcp.py
+│   ├── select_evidence.py        # evidência legível de um acesso
 │   └── run_remote_tp2.sh         # execução na VM monitor (AWS)
 └── output/                       # evidência (ignorada pelo git)
 ```
@@ -238,8 +240,50 @@ Guia detalhado de preparação, IPs, preflight e solução de problemas:
 
 ## 9. Resultados
 
-Ver `output/agregado/report.md` (gerado após os cenários) e
+Execução local em 2026-11-04 (Kafka 3.7.2, RF=1, Python 3.14.4,
+`confluent-kafka==2.15.1`). **14/14 runs PASS** (V1–V8) nos 5 cenários.
+
+| Cenário | Runs | Espera mediana entre runs | Espera máx. | Mensagens/entrada | Teórico |
+|---|---:|---:|---:|---:|---:|
+| `control-no-sync` | 3/3 | 0,0002 s | 0,0045 s | — | — |
+| `normal` (N=5) | 3/3 | 0,138 s | 2,814 s | 12,0 | 12 |
+| `high-contention` (N=5) | 3/3 | 2,248 s | 3,528 s | 12,0 | 12 |
+| `uneven-load` (N=5) | 3/3 | 0,730 s | 2,791 s | 12,0 | 12 |
+| `scale-10` (N=10) | 2/2 | 3,132 s | 5,676 s | 22,0 | 22 |
+
+- **Control**: `max_active=5` e `overlaps=49…55` por run, como esperado sem
+  sincronização. Com sincronização, `max_active=1` e `overlaps=0`.
+- **Mensagens por entrada**: o contador da aplicação confirma exatamente
+  `2N+2` (12 para N=5, 22 para N=10). Instrumentação (`BEGIN/END`), aplicação
+  (`REQUEST/COMMITTED`) e tráfego de infraestrutura são reportados à parte.
+- **Carga desigual**: `c1` fez 120 acessos (40 por run) contra 32–37 dos demais
+  (10–15 por run); a espera mediana ficou em 0,73 s, sem inanição dos clientes
+  menores.
+- **Escala**: a espera mediana sobe de 2,25 s (N=5, alta contenção) para 3,13 s
+  (N=10), coerente com mais pedidos disputando a mesma seção crítica.
+
+Relatório completo: `output/agregado/report.md`; dados de máquina:
 `output/agregado/aggregate.csv`.
+
+### 9.1 Evidência de um acesso concreto
+
+Run `high-contention-20261104-185234-s4202-r1-c0fe` (`output/agregado/evidence_access.md`):
+
+| Evento | mono_ns (ms) | offset | queue_head | queue_len |
+|---|---:|---:|---|---:|
+| REQUEST | 6.545.016,419 | — | — | — |
+| ACQUIRE | 6.545.336,795 | 1 | c4-0001 | 4 |
+| ENTER | 6.545.337,041 | 1 | c4-0001 | 4 |
+| EXIT | 6.545.752,339 | 1 | c4-0001 | 5 |
+| RELEASE | 6.545.753,710 | 7 | c4-0001 | 5 |
+| COMMITTED | 6.545.753,853 | — | — | — |
+
+No observador: `BEGIN` com `obs_seq=3`/`active=1`, `END` com `obs_seq=4`/`active=0`;
+seção crítica de 414,7 ms. Quando `c4-0001` entrou, havia 4 pedidos pendentes e a
+cabeça era o próprio `c4-0001`; os demais só entraram depois do `RELEASE`, que
+foi publicado **após o ACK do `END`**. O offset do `RELEASE` (7) é maior que o
+do `ACQUIRE` (1) porque, durante a seção crítica, outros pedidos (incluindo o
+próximo do próprio `c3`) já tinham sido publicados.
 
 ## 10. Decisões e limitações
 

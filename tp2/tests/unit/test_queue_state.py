@@ -134,3 +134,46 @@ def test_sync_protocol_publishes_and_waits() -> None:
     assert protocol.release("r1") == 1
     assert [message.type for message in log] == [ACQUIRE, RELEASE]
     assert state.entries() == ()
+
+
+def test_wait_until_position_allows_first_k() -> None:
+    state = QueueState()
+    for index in range(1, 4):
+        state.apply_acquire(index, f"sync-{index}", f"r{index}")
+
+    assert state.wait_until_position("sync-1", "r1", limit=2, timeout=0.1)
+    assert state.wait_until_position("sync-2", "r2", limit=2, timeout=0.1)
+    assert not state.wait_until_position("sync-3", "r3", limit=2, timeout=0.05)
+
+
+def test_semaphore_capacity_authorizes_k_and_blocks_the_rest() -> None:
+    log: list[ProtocolMessage] = []
+    state = QueueState()
+
+    def publish(message: ProtocolMessage) -> int:
+        offset = len(log)
+        log.append(message)
+        state.apply(offset, message)
+        return offset
+
+    protocols = [
+        SyncProtocol(f"sync-{index}", publish, state=state, capacity=2)
+        for index in range(1, 4)
+    ]
+    assert protocols[0].acquire("r1") == 0
+    assert protocols[1].acquire("r2") == 1
+
+    result: dict[str, int] = {}
+
+    def acquire_third() -> None:
+        result["offset"] = protocols[2].acquire("r3")
+
+    thread = threading.Thread(target=acquire_third)
+    thread.start()
+    time.sleep(0.1)
+    assert thread.is_alive(), "o terceiro pedido não deveria entrar com K=2"
+
+    protocols[0].release("r1")
+    thread.join(timeout=2.0)
+    assert not thread.is_alive()
+    assert result["offset"] == 2

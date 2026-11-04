@@ -305,6 +305,7 @@ def run_once(
                 "--control-port", str(collector.port),
                 "--observer-port", str(observer_port),
                 "--sync-enabled", "true" if config.sync_enabled else "false",
+                "--capacity", str(config.capacity),
                 "--cs-min", str(config.cs_duration[0]),
                 "--cs-max", str(config.cs_duration[1]),
                 "--seed", str(run_seed),

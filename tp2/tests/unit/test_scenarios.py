@@ -19,6 +19,7 @@ def _load(name: str) -> ScenarioConfig:
 def test_all_scenarios_parse_and_obey_common_ranges() -> None:
     names = [
         "control-no-sync", "normal", "high-contention", "uneven-load", "scale-10",
+        "extension-semaphore",
     ]
     for name in names:
         config = _load(name)
@@ -58,3 +59,10 @@ def test_scale_ten_uses_one_node_per_client() -> None:
     clients = build_clients(config, seed=config.seed)
     assert config.num_nodes == 10
     assert len({client["node_index"] for client in clients}) == 10
+
+
+def test_extension_semaphore_uses_capacity_two() -> None:
+    config = _load("extension-semaphore")
+    assert config.sync_enabled is True
+    assert config.capacity == 2
+    assert config.expect_violation is False
