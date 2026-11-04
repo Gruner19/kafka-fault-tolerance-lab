@@ -1,0 +1,15 @@
+# Escala: 10 processos do Cluster Sync e 10 clientes (um por processo).
+name: scale-10
+num_nodes: 10
+num_clients: 10
+requests_per_client: [10, 15]
+cs_duration: [0.2, 1.0]
+think_time: [1.0, 3.0]
+seed: 6404
+sync_enabled: true
+repetitions: 2
+capacity: 1
+replication_factor: 1
+min_insync_replicas: 1
+retention_ms: 86400000
+expect_violation: false

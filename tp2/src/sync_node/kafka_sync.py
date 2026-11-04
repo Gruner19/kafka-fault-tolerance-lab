@@ -12,6 +12,9 @@ import time
 from dataclasses import asdict, dataclass
 from typing import Callable, Optional
 
+from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
+from confluent_kafka.admin import AdminClient
+
 from common.messages import ACQUIRE, RELEASE, ProtocolMessage
 
 ENQUEUED = "ENQUEUED"
@@ -43,6 +46,7 @@ class QueueState:
         self._seen: set[str] = set()
         self._released: set[str] = set()
         self._violations: list[dict] = []
+        self._aborted = False
 
     # -- consulta ---------------------------------------------------------
     def head(self) -> Optional[QueueEntry]:
@@ -128,6 +132,8 @@ class QueueState:
         deadline = None if timeout is None else time.monotonic() + timeout
         with self._cond:
             while True:
+                if self._aborted:
+                    return False
                 head = self._queue[0] if self._queue else None
                 if head is not None and head.process_id == process_id and head.request_id == request_id:
                     return True
@@ -138,6 +144,12 @@ class QueueState:
                 if remaining <= 0:
                     return False
                 self._cond.wait(remaining)
+
+    def abort(self) -> None:
+        """Desbloqueia esperas no encerramento do processo (não é parte do protocolo)."""
+        with self._cond:
+            self._aborted = True
+            self._cond.notify_all()
 
 
 PublishFn = Callable[[ProtocolMessage], int]
@@ -174,6 +186,10 @@ class SyncProtocol:
     def acquire(self, request_id: str) -> int:
         message = ProtocolMessage(ACQUIRE, self.resource, self.process_id, request_id)
         offset = self.publish(message)
+        # Só registra a aquisição depois que a própria mensagem foi entregue e o
+        # pedido virou cabeça: assim `queue_head` é sempre o pedido autorizado.
+        if not self.state.wait_until_head(self.process_id, request_id, timeout=self.timeout):
+            raise TimeoutError(f"ACQUIRE {request_id} não chegou à cabeça da fila")
         snapshot = self.state.snapshot()
         self._emit(
             ACQUIRE,
@@ -183,14 +199,15 @@ class SyncProtocol:
             queue_head=snapshot["queue_head"],
             queue_len=snapshot["queue_len"],
         )
-        if not self.state.wait_until_head(self.process_id, request_id, timeout=self.timeout):
-            raise TimeoutError(f"ACQUIRE {request_id} não chegou à cabeça da fila")
         return offset
 
     def release(self, request_id: str) -> int:
         message = ProtocolMessage(RELEASE, self.resource, self.process_id, request_id)
-        offset = self.publish(message)
+        # A foto é tirada antes de publicar: o consumidor local pode remover o
+        # pedido da fila antes de o worker voltar do delivery report. No estado
+        # pré-publicação o pedido é, por invariante, a cabeça da fila.
         snapshot = self.state.snapshot()
+        offset = self.publish(message)
         self._emit(
             RELEASE,
             request_id=request_id,
@@ -216,3 +233,122 @@ class SyncProtocol:
                 queue_len=snapshot["queue_len"],
             )
         return action
+
+
+def verify_single_partition(bootstrap: str, topic: str, timeout: float = 10.0) -> int:
+    """Aborta se o tópico não existir ou não tiver exatamente 1 partição."""
+    admin = AdminClient({"bootstrap.servers": bootstrap, "client.id": "tp2-verify"})
+    metadata = admin.list_topics(timeout=timeout).topics.get(topic)
+    if metadata is None or metadata.error is not None:
+        detail = "sem metadata" if metadata is None else str(metadata.error)
+        raise RuntimeError(f"tópico {topic!r} indisponível ({detail})")
+    count = len(metadata.partitions)
+    if count != 1:
+        raise RuntimeError(
+            f"tópico {topic!r} tem {count} partições; o B6 exige exatamente 1"
+        )
+    return 0
+
+
+class KafkaLog:
+    """Adaptador Kafka: produtor síncrono (partição 0) e consumidor dedicado."""
+
+    def __init__(
+        self,
+        bootstrap: str,
+        topic: str,
+        group_id: str,
+        process_id: str,
+        delivery_timeout: float = 10.0,
+    ) -> None:
+        self.topic = topic
+        self._tp = TopicPartition(topic, 0)
+        self._delivery_timeout = delivery_timeout
+        self.producer = Producer({
+            "bootstrap.servers": bootstrap,
+            "client.id": f"{process_id}-producer",
+            "acks": "all",
+            "enable.idempotence": True,
+            "linger.ms": 0,
+            "max.in.flight.requests.per.connection": 5,
+            "message.timeout.ms": 10000,
+            "retries": 10,
+        })
+        self.consumer = Consumer({
+            "bootstrap.servers": bootstrap,
+            "client.id": f"{process_id}-consumer",
+            "group.id": group_id,
+            "enable.auto.commit": False,
+            "auto.offset.reset": "earliest",
+            "fetch.wait.max.ms": 10,
+            "fetch.min.bytes": 1,
+            "session.timeout.ms": 10000,
+            "max.poll.interval.ms": 300000,
+        })
+
+    def subscribe_and_wait(self, timeout: float = 30.0) -> int:
+        """Assina o tópico e espera a atribuição da partição 0 (readiness).
+
+        Devolve a posição inicial da partição (0 quando o tópico está vazio),
+        registrando assim uma posição conhecida antes da carga.
+        """
+        self.consumer.subscribe([self.topic])
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            self.consumer.poll(0.1)
+            assignment = self.consumer.assignment()
+            if assignment:
+                if len(assignment) != 1 or assignment[0].partition != 0:
+                    raise RuntimeError(f"atribuição inesperada: {assignment}")
+                positions = self.consumer.position([self._tp])
+                if positions and positions[0].offset >= 0:
+                    return int(positions[0].offset)
+                # Com o tópico vazio o position() pode continuar INVALID até o
+                # primeiro fetch; o low watermark é a posição inicial efetiva.
+                low, _ = self.consumer.get_watermark_offsets(self._tp, timeout=2.0)
+                return int(low)
+        raise TimeoutError(f"consumidor não recebeu a partição 0 de {self.topic!r}")
+
+    def publish(self, message: ProtocolMessage) -> int:
+        outcome: dict = {}
+        done = threading.Event()
+
+        def on_delivery(error, delivered) -> None:
+            if error is not None:
+                outcome["error"] = error
+            else:
+                outcome["offset"] = delivered.offset()
+                outcome["partition"] = delivered.partition()
+            done.set()
+
+        self.producer.produce(
+            self.topic,
+            key=message.resource.encode("utf-8"),
+            value=message.to_bytes(),
+            partition=0,
+            on_delivery=on_delivery,
+        )
+        deadline = time.monotonic() + self._delivery_timeout
+        while not done.is_set():
+            self.producer.poll(0.01)
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"delivery report não chegou para {message.request_id}")
+        if "error" in outcome:
+            raise RuntimeError(str(outcome["error"]))
+        return int(outcome["offset"])
+
+    def poll(self, timeout: float = 0.05):
+        record = self.consumer.poll(timeout)
+        if record is None:
+            return None
+        if record.error():
+            if record.error().code() == KafkaError._PARTITION_EOF:
+                return None
+            raise RuntimeError(str(record.error()))
+        return record.partition(), record.offset(), record.value()
+
+    def close(self) -> None:
+        try:
+            self.producer.flush(5.0)
+        finally:
+            self.consumer.close()
