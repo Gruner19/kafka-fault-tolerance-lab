@@ -12,6 +12,7 @@
 #   tp2/scripts/run_remote_tp2.sh 1.2.3.4 normal
 #   tp2/scripts/run_remote_tp2.sh 1.2.3.4 all --preflight
 #   TP2_EXTRA_ARGS="--requests 10" tp2/scripts/run_remote_tp2.sh 1.2.3.4 normal
+#   TP2_KEEP_TOPIC=1 tp2/scripts/run_remote_tp2.sh 1.2.3.4 high-contention
 #
 # Variáveis de ambiente:
 #   SSH_PRIVATE_KEY  chave usada apenas pelo cliente ssh (padrão do TP1)
@@ -20,6 +21,7 @@
 #   AWS_RF           replication factor do tópico (padrão: 3)
 #   AWS_MIN_ISR      min.insync.replicas (padrão: 2)
 #   TP2_EXTRA_ARGS   argumentos extras repassados ao harness
+#   TP2_KEEP_TOPIC   se 1, não apaga o tópico ao final (inspeção no Grafana)
 #   LOCAL_OUT        diretório local de saída (padrão: tp2/output/remote-<ts>)
 
 set -euo pipefail
@@ -44,6 +46,7 @@ fi
 if [[ -z "$MONITOR_HOST" ]]; then
   echo "Uso: $0 <IP_PUBLICO_MONITOR> <cenario|all> [--preflight]" >&2
   echo "Cenários: control-no-sync normal high-contention uneven-load scale-10" >&2
+  echo "Extensão: extension-semaphore extension-semaphore-k3 (etapa separada)" >&2
   exit 2
 fi
 
@@ -94,7 +97,7 @@ python3 -m venv .venv
 .venv/bin/pip install -q -r requirements.txt
 .venv/bin/python - <<'PY'
 import confluent_kafka
-print(f"confluent-kafka {confluent_kafka.version()[0]}, librdkafka {confluent_kafka.libversion()[0]}")
+print(f"confluent-kafka {confluent_kafka.version()}, librdkafka {confluent_kafka.libversion()[0]}")
 PY
 REMOTE_SETUP
 
@@ -102,8 +105,10 @@ COMMON_ARGS=(
   --bootstrap "$AWS_BOOTSTRAP"
   --replication-factor "$AWS_RF"
   --min-insync-replicas "$AWS_MIN_ISR"
-  --delete-topic
 )
+if [[ "${TP2_KEEP_TOPIC:-0}" != "1" ]]; then
+  COMMON_ARGS+=(--delete-topic)
+fi
 
 if [[ "$MODE" == "preflight" ]]; then
   echo "[4/5] Preflight (brokers + tópico de 1 partição + criação/remoção)"

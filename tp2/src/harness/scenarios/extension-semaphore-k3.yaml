@@ -1,0 +1,16 @@
+# Extensão opcional: semáforo distribuído com K=3 sobre o mesmo log.
+# Executado em etapa separada do mutex sobre R (K=1).
+name: extension-semaphore-k3
+num_nodes: 5
+num_clients: 5
+requests_per_client: [10, 15]
+cs_duration: [0.2, 1.0]
+think_time: [0.0, 0.0]
+seed: 8505
+sync_enabled: true
+repetitions: 2
+capacity: 3
+replication_factor: 1
+min_insync_replicas: 1
+retention_ms: 86400000
+expect_violation: false

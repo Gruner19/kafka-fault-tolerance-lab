@@ -45,7 +45,11 @@ Sistema completo para **aprovisionar**, **desplegar**, **ejecutar experimentos**
 | VM | Rol | vCPU | RAM | Puertos clave |
 |---|---|---|---|---|
 | kafka-1/2/3 | Broker + Controller (KRaft) | 2 | 4 GB | 9092 (cliente), 9093 (quórum), 9100 (JMX) |
-| monitor | Prometheus + Grafana + exporters | 2 | 4 GB | 9090 (Prometheus), 3000 (Grafana), 9308 (kafka_exporter) |
+| monitor | Prometheus + Grafana + exporters | 2 | 8 GB | 9090 (Prometheus), 3000 (Grafana), 9308 (kafka_exporter) |
+
+> Instâncias atuais: brokers `c7i-flex.large` e `monitor` `m7i-flex.large`
+> (Ubuntu 24.04.5). O Terraform do TP1 usa por padrão 4× `t3.medium` com
+> Ubuntu 22.04; o TP2 exige apenas Python 3.10+ e funciona em ambos.
 
 ### Componentes Clave
 
@@ -75,7 +79,8 @@ pip install -r scripts/app/requirements.txt
 
 ### En AWS EC2
 
-- 4 instancias `t3.medium` (2 vCPU, 4 GB RAM) con Ubuntu 22.04 LTS
+- Instancias actuales: 3 brokers `c7i-flex.large` (2 vCPU, 4 GB) y 1 `monitor` `m7i-flex.large` (2 vCPU, 8 GB) con Ubuntu 24.04 LTS
+  (Terraform por defecto crea 4× `t3.medium` con Ubuntu 22.04)
 - Key pair SSH configurada
 - Security Groups ajustados (ver sección de requisitos de red)
 - Terraform >= 1.6 (opcional, si deseas crear las VMs)
@@ -89,10 +94,10 @@ privadas actuales se mantienen estables y son las que Kafka usa internamente.
 
 | VM | IP pública actual | IP privada actual |
 |---|---|---|
-| kafka-1 | `18.225.31.122` | `172.31.37.6` |
-| kafka-2 | `3.22.234.84` | `172.31.36.3` |
-| kafka-3 | `18.222.141.214` | `172.31.47.50` |
-| monitor | `18.220.154.71` | `172.31.38.177` |
+| kafka-1 | `77.113.217.182` | `172.31.33.149` |
+| kafka-2 | `18.117.194.94` | `172.31.46.215` |
+| kafka-3 | `77.113.80.88` | `172.31.38.92` |
+| monitor | `18.218.241.188` | `172.31.43.232` |
 
 Histórico de IPs públicas:
 
@@ -102,6 +107,7 @@ Histórico de IPs públicas:
 | Primer reinicio | `18.191.138.84` | `18.222.141.148` | `52.14.10.119` | `18.225.222.106` |
 | Actual | `3.16.114.25` | `77.113.93.214` | `18.222.169.115` | `18.219.192.134` |
 | Segundo reinicio | `18.225.31.122` | `3.22.234.84` | `18.222.141.214` | `18.220.154.71` |
+| Tercer reinicio | `77.113.217.182` | `18.117.194.94` | `77.113.80.88` | `18.218.241.188` |
 
 Después de cada cambio de IP pública hay que actualizar el inventario y
 reaplicar Ansible. Las IP privadas solo se cambian si AWS también las cambia.

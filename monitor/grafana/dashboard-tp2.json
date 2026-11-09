@@ -1,0 +1,174 @@
+{
+  "id": null,
+  "uid": "kafka-tp2-envio-recepcion",
+  "title": "Kafka TP2 - envio e recepcao",
+  "tags": ["kafka", "tp2"],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "templating": {
+    "list": [
+      {
+        "name": "topic",
+        "label": "Topic",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+        "query": "label_values(kafka_topic_partition_current_offset, topic)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "consumer_group",
+        "label": "Consumer group",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+        "query": "label_values(kafka_consumergroup_members, consumergroup)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "broker",
+        "label": "Broker",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+        "query": "label_values(up{job=~\"kafka-broker-.*\"}, broker)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Envio: mensagens produzidas/s (cluster)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(rate(kafka_server_brokertopicmetrics_messagesin_total[30s]))", "legendFormat": "msg/s", "refId": "A" }
+      ],
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 2,
+      "title": "Recepcao no broker: bytes de entrada/s",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(rate(kafka_server_brokertopicmetrics_bytesin_total[30s]))", "legendFormat": "bytes/s", "refId": "B" }
+      ],
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "title": "Consumo: bytes de saida/fetch por segundo",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(rate(kafka_server_brokertopicmetrics_bytesout_total[30s]))", "legendFormat": "bytes/s", "refId": "C" }
+      ],
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 4,
+      "title": "Envio: offset final do topico (total de registros)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum(kafka_topic_partition_current_offset{topic=~\"$topic\"})", "legendFormat": "log end offset", "refId": "D" }
+      ],
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 5,
+      "title": "Offset final por topico/particao",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "kafka_topic_partition_current_offset{topic=~\"$topic\"}", "legendFormat": "{{topic}} p{{partition}}", "refId": "E" }
+      ],
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "title": "Consumo: membros por consumer group",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum by (consumergroup) (kafka_consumergroup_members{consumergroup=~\"$consumer_group\"})", "legendFormat": "{{consumergroup}}", "refId": "F" }
+      ],
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 7,
+      "title": "Consumer lag (se houver offsets commitados)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "sum by (consumergroup) (kafka_consumergroup_lag{topic=~\"$topic\",consumergroup=~\"$consumer_group\"})", "legendFormat": "{{consumergroup}}", "refId": "G" }
+      ],
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 8,
+      "title": "Brokers ativos",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "up{job=~\"kafka-broker-.*\",broker=~\"$broker\"}", "legendFormat": "{{broker}}", "refId": "H" }
+      ],
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 24 },
+      "fieldConfig": { "defaults": { "min": 0, "max": 1 }, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 9,
+      "title": "Saude: under-replicated / offline partitions",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        { "expr": "max(kafka_server_replicamanager_underreplicatedpartitions)", "legendFormat": "under-replicated", "refId": "I" },
+        { "expr": "max(kafka_controller_kafkacontroller_offlinepartitionscount)", "legendFormat": "offline", "refId": "J" }
+      ],
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 32 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": {}
+    },
+    {
+      "id": 10,
+      "title": "Como ler este dashboard",
+      "type": "text",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 40 },
+      "options": {
+        "mode": "markdown",
+        "content": "No TP2, cada acesso publica **ACQUIRE** e **RELEASE** no topico `r-events-<run_id>`; os eventos **BEGIN/END** vao por TCP ao observador e nao passam pelo Kafka.\\n\\n- **Envio**: `messagesin_total`, `bytesin_total` e `kafka_topic_partition_current_offset`.\\n- **Recepcao/fetch**: `bytesout_total` e os offsets consumidos.\\n- O TP2 usa `enable.auto.commit=false`; por isso `kafka_consumergroup_lag` pode ficar vazio. A prova definitiva de que todos os nos receberam a mesma sequencia e o V5 + `kafka_log.jsonl`/`DELIVERED_DIGEST`.\\n- Use `TP2_KEEP_TOPIC=1` para manter o topico apos a corrida e conseguir inspecionar as series com calma."
+      }
+    }
+  ]
+}

@@ -95,13 +95,25 @@ class QueueState:
                 return DUPLICATE_IGNORED
 
             head = self._queue[0] if self._queue else None
-            if head is None or head.process_id != process_id or head.request_id != request_id:
+            position = next(
+                (
+                    index for index, entry in enumerate(self._queue)
+                    if entry.process_id == process_id and entry.request_id == request_id
+                ),
+                None,
+            )
+            # Mutex (K=1) exige a cabeça; semáforo (K>1) aceita qualquer posição
+            # dentro da janela autorizada. Posições só diminuem, então um pedido
+            # que entrou na janela continua nela até o RELEASE.
+            if position is None or position >= self.capacity:
                 violation = {
                     "offset": offset,
                     "process_id": process_id,
                     "request_id": request_id,
                     "queue_head": head.request_id if head else None,
                     "queue_len": len(self._queue),
+                    "queue_position": position,
+                    "capacity": self.capacity,
                 }
                 self._violations.append(violation)
                 # Recuperação defensiva indicada pela spec: remover por request_id.
@@ -111,7 +123,7 @@ class QueueState:
                 self._cond.notify_all()
                 return INVARIANT_VIOLATION
 
-            self._queue.pop(0)
+            self._queue.pop(position)
             self._released.add(request_id)
             self._cond.notify_all()
             return RELEASED
@@ -199,7 +211,7 @@ class SyncProtocol:
         self.process_id = process_id
         self.resource = resource
         self.publish = publish
-        self.state = state if state is not None else QueueState()
+        self.state = state if state is not None else QueueState(capacity)
         self._log = log
         self.timeout = timeout
         self.capacity = capacity
@@ -218,6 +230,14 @@ class SyncProtocol:
         ):
             raise TimeoutError(f"ACQUIRE {request_id} não chegou à posição de entrada")
         snapshot = self.state.snapshot()
+        position = next(
+            (
+                index for index, entry in enumerate(snapshot["queue"])
+                if entry["process_id"] == self.process_id
+                and entry["request_id"] == request_id
+            ),
+            None,
+        )
         self._emit(
             ACQUIRE,
             request_id=request_id,
@@ -225,6 +245,7 @@ class SyncProtocol:
             offset=offset,
             queue_head=snapshot["queue_head"],
             queue_len=snapshot["queue_len"],
+            queue_index=position,
         )
         return offset
 
@@ -232,8 +253,17 @@ class SyncProtocol:
         message = ProtocolMessage(RELEASE, self.resource, self.process_id, request_id)
         # A foto é tirada antes de publicar: o consumidor local pode remover o
         # pedido da fila antes de o worker voltar do delivery report. No estado
-        # pré-publicação o pedido é, por invariante, a cabeça da fila.
+        # pré-publicação o pedido ainda está na fila e, por invariante, dentro
+        # da janela autorizada (cabeça com K=1; K primeiras posições com K>1).
         snapshot = self.state.snapshot()
+        position = next(
+            (
+                index for index, entry in enumerate(snapshot["queue"])
+                if entry["process_id"] == self.process_id
+                and entry["request_id"] == request_id
+            ),
+            None,
+        )
         offset = self.publish(message)
         self._emit(
             RELEASE,
@@ -242,6 +272,7 @@ class SyncProtocol:
             offset=offset,
             queue_head=snapshot["queue_head"],
             queue_len=snapshot["queue_len"],
+            queue_index=position,
         )
         return offset
 

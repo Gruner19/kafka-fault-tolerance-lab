@@ -1,0 +1,51 @@
+{
+  "scenario": "extension-semaphore",
+  "run_id": "extension-semaphore-20261104-190453-s7505-r1-faab",
+  "repetition": 1,
+  "seed": 7505,
+  "sync_enabled": true,
+  "capacity": 2,
+  "requests_total": 59,
+  "completed": 59,
+  "duration_s": 24.079,
+  "load_duration_s": 20.302,
+  "waits_s": {
+    "count": 59,
+    "min": 0.001812218,
+    "median": 0.941175977,
+    "max": 1.82878503
+  },
+  "accesses_per_client": {
+    "c1": 13,
+    "c2": 10,
+    "c3": 12,
+    "c4": 10,
+    "c5": 14
+  },
+  "cs_duration_s": [
+    0.2,
+    1.0
+  ],
+  "think_time_s": [
+    0.0,
+    0.0
+  ],
+  "protocol_published": {
+    "sync-1": 26,
+    "sync-2": 20,
+    "sync-3": 24,
+    "sync-4": 20,
+    "sync-5": 28
+  },
+  "protocol_delivered": {
+    "sync-1": 118,
+    "sync-2": 118,
+    "sync-3": 118,
+    "sync-4": 118,
+    "sync-5": 118
+  },
+  "messages_per_entry_observed": 12.0,
+  "messages_per_entry_theoretical": 12,
+  "topic": "r-events-extension-semaphore-20261104-190453-s7505-r1-faab",
+  "verification_ok": false
+}

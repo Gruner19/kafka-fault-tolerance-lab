@@ -58,7 +58,7 @@ class SyncNode:
 
         self.stop_event = threading.Event()
         self.requests: queue.Queue = queue.Queue()
-        self.state = QueueState()
+        self.state = QueueState(args.capacity)
         self.protocol: Optional[SyncProtocol] = None
         self.kafka: Optional[KafkaLog] = None
         self.observer: Optional[ObserverClient] = None

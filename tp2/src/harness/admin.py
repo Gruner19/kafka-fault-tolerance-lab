@@ -20,6 +20,7 @@ import sys
 import time
 from typing import Optional
 
+from confluent_kafka import KafkaException
 from confluent_kafka.admin import (
     RESOURCE_TOPIC,
     AdminClient,
@@ -44,13 +45,23 @@ def topic_exists(admin: AdminClient, topic: str) -> bool:
     return metadata is not None and metadata.error is None
 
 
-def wait_topic(admin: AdminClient, topic: str, timeout: float = 15.0) -> bool:
-    """Espera a metadata do tópico ficar visível com partições."""
+def wait_topic(
+    admin: AdminClient,
+    topic: str,
+    timeout: float = 15.0,
+    partitions: Optional[int] = None,
+) -> bool:
+    """Espera a metadata do tópico ficar visível com partições.
+
+    ``partitions`` permite exigir a contagem esperada já na primeira
+    observação, evitando aceitar uma metadata parcial.
+    """
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         metadata = _topic_metadata(admin, topic)
         if metadata is not None and metadata.error is None and metadata.partitions:
-            return True
+            if partitions is None or len(metadata.partitions) == partitions:
+                return True
         time.sleep(0.2)
     return False
 
@@ -84,7 +95,7 @@ def create_topic(
     )
     futures[topic].result(timeout=20.0)
 
-    if not wait_topic(admin, topic):
+    if not wait_topic(admin, topic, partitions=partitions):
         raise RuntimeError(f"tópico {topic!r} não ficou visível na metadata")
 
     return {
@@ -96,18 +107,53 @@ def create_topic(
     }
 
 
-def describe_topic_configs(admin: AdminClient, topic: str) -> dict:
+def describe_topic_configs(
+    admin: AdminClient, topic: str, attempts: int = 6,
+) -> dict:
+    """Lê as configs do tópico, tolerando metadata ainda em propagação.
+
+    Em clusters com RF=3 a criação pode ficar visível na metadata alguns
+    instantes antes de o config resource responder; sem retry o primeiro run
+    falha com UNKNOWN_TOPIC_OR_PART.
+    """
     resource = ConfigResource(RESOURCE_TOPIC, topic)
-    futures = admin.describe_configs([resource], request_timeout=10.0)
-    entries = futures[resource].result(timeout=15.0)
-    return {name: entry.value for name, entry in entries.items()}
+    last_error: Optional[Exception] = None
+    for attempt in range(attempts):
+        try:
+            futures = admin.describe_configs([resource], request_timeout=10.0)
+            entries = futures[resource].result(timeout=15.0)
+            return {name: entry.value for name, entry in entries.items()}
+        except KafkaException as exc:
+            last_error = exc
+            time.sleep(min(0.5 * (attempt + 1), 3.0))
+    raise RuntimeError(
+        f"configs do tópico {topic!r} indisponíveis após {attempts} tentativas: "
+        f"{last_error}"
+    )
 
 
-def describe_topic(admin: AdminClient, topic: str) -> dict:
-    metadata = _topic_metadata(admin, topic)
-    if metadata is None or metadata.error is not None:
-        detail = "sem metadata" if metadata is None else str(metadata.error)
-        raise RuntimeError(f"tópico {topic!r} não encontrado ({detail})")
+def describe_topic(admin: AdminClient, topic: str, attempts: int = 10) -> dict:
+    """Descreve o tópico tolerando metadata ainda em propagação.
+
+    Mesmo depois de ``create_topics`` resolver e de a metadata ficar visível
+    em uma requisição, outra requisição pode cair em um broker com cache
+    desatualizado e devolver ``UNKNOWN_TOPIC_OR_PART``. Por isso a leitura da
+    metadata também tem retry (não só a das configs).
+    """
+    last_detail = "sem metadata"
+    metadata = None
+    for attempt in range(attempts):
+        metadata = _topic_metadata(admin, topic)
+        if (
+            metadata is not None
+            and metadata.error is None
+            and metadata.partitions
+        ):
+            break
+        last_detail = "sem metadata" if metadata is None else str(metadata.error)
+        time.sleep(min(0.3 * (attempt + 1), 2.0))
+    else:
+        raise RuntimeError(f"tópico {topic!r} não encontrado ({last_detail})")
 
     partitions = []
     for partition_id, partition in sorted(metadata.partitions.items()):

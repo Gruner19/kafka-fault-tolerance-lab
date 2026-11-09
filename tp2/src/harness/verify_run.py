@@ -144,7 +144,9 @@ def verify_run(run_dir: str | Path, meta: dict) -> dict:
     }))
 
     # V4 — ordem dos BEGIN == ordem crescente dos offsets de ACQUIRE.
-    if sync_enabled and not expect_violation:
+    # Com K>1 (semáforo) os pedidos autorizados entram em paralelo e a ordem de
+    # BEGIN não é determinística; a exclusão é verificada por V1.
+    if sync_enabled and not expect_violation and capacity == 1:
         acquires = []
         for records in node_logs.values():
             for record in records:
@@ -169,7 +171,10 @@ def verify_run(run_dir: str | Path, meta: dict) -> dict:
             ),
         }))
     else:
-        checks.append(_check("V4", True, {"skipped": "modo control"}))
+        checks.append(_check(
+            "V4", True,
+            {"skipped": "modo control" if not sync_enabled or expect_violation else "capacity>1", "capacity": capacity},
+        ))
 
     # V5 — todos os consumidores leram a mesma sequência.
     digests = {}
@@ -218,7 +223,7 @@ def verify_run(run_dir: str | Path, meta: dict) -> dict:
         "readiness_known": readiness_known,
     }))
 
-    # V6 — invariantes e RELEASE sempre removendo a cabeça.
+    # V6 — invariantes e RELEASE dentro da janela autorizada.
     violations = sum(
         1 for records in node_logs.values() for record in records
         if record["event"] == "INVARIANT_VIOLATION"
@@ -226,11 +231,26 @@ def verify_run(run_dir: str | Path, meta: dict) -> dict:
     bad_release = []
     for process_id, records in node_logs.items():
         for record in records:
-            if record["event"] == "RELEASE" and record.get("queue_head") != record["request_id"]:
-                bad_release.append((process_id, record["request_id"], record.get("queue_head")))
+            if record["event"] != "RELEASE":
+                continue
+            if capacity == 1:
+                # Mutex: o pedido liberado deve ser a cabeça da fila.
+                ok = record.get("queue_head") == record["request_id"]
+            else:
+                # Semáforo: basta estar dentro das K primeiras posições.
+                index = record.get("queue_index")
+                ok = index is not None and 0 <= int(index) < capacity
+            if not ok:
+                bad_release.append((
+                    process_id,
+                    record["request_id"],
+                    record.get("queue_head"),
+                    record.get("queue_index"),
+                ))
     checks.append(_check("V6", violations == 0 and not bad_release, {
         "invariant_violations": violations,
-        "release_not_head": bad_release[:10],
+        "release_outside_window": bad_release[:10],
+        "capacity": capacity,
     }))
 
     # V7 — tópico com uma única partição, sem compactação e com RF/ISR pedidas.

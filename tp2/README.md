@@ -105,8 +105,8 @@ cd tp2
 ```
 
 Cobrem a máquina de estados da fila (duplicatas, `RELEASE` fora de ordem, fila
-vazia), o protocolo com entrega síncrona e uma simulação de 1000 sementes com
-5 nós.
+vazia, janela K>1), o protocolo com entrega síncrona e uma simulação de 1000
+sementes com 5 nós.
 
 ### 4.2 Demonstração local (fase 3)
 
@@ -133,7 +133,17 @@ Opções úteis:
 | `--requests N` | fixa pedidos por cliente (útil em dev) |
 | `--bootstrap` | lista de brokers (dev ou AWS) |
 | `--replication-factor` / `--min-insync-replicas` | RF/ISR do tópico (AWS: 3/2) |
+| `--capacity K` | sobrescreve K (semáforo; use só para a extensão) |
 | `--delete-topic` | apaga o tópico ao final (limpeza) |
+
+Extensão semáforo, em etapa separada:
+
+```bash
+.venv/bin/python src/harness/run_experiment.py \
+  --scenario src/harness/scenarios/extension-semaphore.yaml      # K=2
+.venv/bin/python src/harness/run_experiment.py \
+  --scenario src/harness/scenarios/extension-semaphore-k3.yaml   # K=3
+```
 
 Cada run grava em `output/<cenário>/<run_id>/`:
 
@@ -179,6 +189,12 @@ Arquivos em `src/harness/scenarios/`:
 | `high-contention` | `think=0`, `CS=0,2–1,0 s`, 3 repetições | espera sob fila cheia |
 | `uneven-load` | `c1` com 40 pedidos e `think≈0–0,2 s`; demais normais | justiça e distribuição |
 | `scale-10` | 10 nós/10 clientes, 2 repetições | espera e tráfego vs. N |
+| `extension-semaphore` | K=2, 5 nós/5 clientes, 2 repetições | até 2 acessos simultâneos |
+| `extension-semaphore-k3` | K=3, 5 nós/5 clientes, 2 repetições | até 3 acessos simultâneos |
+
+Os dois cenários de extensão são **etapas separadas** do mutex sobre `R`: usam
+`capacity=K` no nó e no observador, mas não substituem os cenários obrigatórios
+com `capacity=1`.
 
 O modo control é considerado **bem-sucedido quando V1 falha de propósito**
 (`overlaps > 0`), provando que a instrumentação enxerga acessos simultâneos.
@@ -190,9 +206,9 @@ O modo control é considerado **bem-sucedido quando V1 falha de propósito**
 | V1 | `max_active ≤ capacity` e `overlaps=0` (no control: `overlaps>0`) |
 | V2 | todo pedido tem exatamente um `COMMITTED` no cliente e no nó |
 | V3 | nenhum `request_id` tem mais de um `ENTER` |
-| V4 | ordem dos `BEGIN` no observador = ordem crescente dos offsets de `ACQUIRE` |
+| V4 | ordem dos `BEGIN` no observador = ordem crescente dos offsets de `ACQUIRE` (pulada com `capacity>1`, pois entradas simultâneas não têm ordem fixa) |
 | V5 | todos os nós leram a mesma sequência (SHA-256 dos offsets), com `READY.start_offset=0`, e o despejo do tópico confere |
-| V6 | zero `INVARIANT_VIOLATION`; todo `RELEASE` removeu a própria cabeça |
+| V6 | zero `INVARIANT_VIOLATION`; com K=1 todo `RELEASE` removeu a própria cabeça; com K>1 todo `RELEASE` estava dentro das K primeiras posições (`queue_index < K`) |
 | V7 | tópico com exatamente 1 partição |
 | V8 | espera máxima observada vs. cota teórica (informativa) |
 
@@ -235,13 +251,84 @@ O script copia `tp2/` para `/tmp/sis_distribuidos_tp2` na `monitor`, cria um
 > O MCP de Kafka **não** é usado contra a AWS: os brokers anunciam IPs privadas.
 > O smoke real é o `--preflight` executado dentro da `monitor`.
 
+### 8.1 Evidência de envio e recepção no Grafana
+
+O TP2 publica no Kafka apenas `ACQUIRE` e `RELEASE`; os eventos `BEGIN`/`END`
+vão por TCP ao observador e **não** passam pelo Kafka, portanto não aparecem no
+Grafana. Para evidenciar envio e recepção:
+
+1. Abra os túneles SSH (Grafana em `localhost:3000`, Prometheus em `9090`):
+
+```bash
+./scripts/tunnels.sh <IP_PUBLICO_MONITOR>
+# equivalente manual:
+ssh -i "$SSH_PRIVATE_KEY" -N \
+  -L 3000:localhost:3000 \
+  -L 9090:localhost:9090 \
+  ubuntu@<IP_PUBLICO_MONITOR>
+```
+
+2. Acesse `http://localhost:3000` (`admin`/`admin`) e abra o dashboard
+   **Kafka TP2 - envio e recepcao** (UID `kafka-tp2-envio-recepcion`,
+   arquivo `monitor/grafana/dashboard-tp2.json`).
+
+3. Rode um cenário mantendo o tópico para inspeção posterior:
+
+```bash
+TP2_KEEP_TOPIC=1 tp2/scripts/run_remote_tp2.sh <IP_PUBLICO_MONITOR> normal
+```
+
+4. No dashboard, selecione o tópico `r-events-normal-<run_id>` no filtro
+   **Topic** e ajuste a janela de tempo para o intervalo da corrida.
+
+Painéis e o que cada consulta evidencia:
+
+| Painel / PromQL | O que evidencia |
+|---|---|
+| `sum(rate(kafka_server_brokertopicmetrics_messagesin_total[30s]))` | taxa de mensagens recebidas pelos brokers (envio) |
+| `sum(rate(kafka_server_brokertopicmetrics_bytesin_total[30s]))` | bytes de entrada nos brokers |
+| `sum(rate(kafka_server_brokertopicmetrics_bytesout_total[30s]))` | bytes de fetch entregues aos consumidores (recepção) |
+| `sum(kafka_topic_partition_current_offset{topic=~"$topic"})` | log end offset = total de registros publicados no tópico |
+| `kafka_topic_partition_current_offset{topic=~"$topic"}` | offset por tópico/partição (o TP2 usa 1 partição) |
+| `sum by (consumergroup) (kafka_consumergroup_members{...})` | consumer groups conhecidos pelo cluster |
+
+> **Cuidado com o lag.** O TP2 usa `enable.auto.commit=false` e não commita
+> offsets: `kafka_consumergroup_lag` e `kafka_consumergroup_current_offset`
+> ficam **vazios**, e `kafka_consumergroup_members` pode aparecer como `0`.
+> Isso **não** significa ausência de recepção. A prova definitiva de recepção é
+> o **V5** (todos os nós leram a mesma sequência, conferida por SHA-256 dos
+> offsets) mais `kafka_log.jsonl` e `DELIVERED_DIGEST` no diretório do run.
+
+Consulta manual, sem Grafana:
+
+```bash
+ssh -i "$SSH_PRIVATE_KEY" ubuntu@<IP_PUBLICO_MONITOR> \
+  "curl -s --get http://localhost:9090/api/v1/query \
+   --data-urlencode 'query=kafka_topic_partition_current_offset{topic=\"r-events-normal-<run_id>\"}'"
+```
+
+O `value` retornado é o log end offset. No cenário `normal` (5 clientes ×
+10 pedidos = 50 acessos), o tópico recebe **100 registros**: um `ACQUIRE` e um
+`RELEASE` por acesso.
+
+Ao terminar, apague o tópico mantido (execute em qualquer broker, que tem
+`kafka-topics.sh`):
+
+```bash
+ssh -A -i "$SSH_PRIVATE_KEY" ubuntu@<IP_PUBLICO_KAFKA_1> \
+  '/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 \
+   --delete --topic r-events-normal-<run_id>'
+```
+
 Guia detalhado de preparação, IPs, preflight e solução de problemas:
 [`AWS.md`](AWS.md).
 
 ## 9. Resultados
 
-Execução local em 2026-11-04 (Kafka 3.7.2, RF=1, Python 3.14.4,
-`confluent-kafka==2.15.1`). **14/14 runs PASS** (V1–V8) nos 5 cenários.
+Execução local em 2026-11-04 para os cenários obrigatórios e em 2026-11-09
+para a extensão semáforo (Kafka 3.7.2, RF=1, Python 3.14.4,
+`confluent-kafka==2.15.1`). **18/18 runs PASS** (V1–V8): 14 runs nos 5 cenários
+obrigatórios e 4 runs na extensão semáforo (K=2 e K=3).
 
 | Cenário | Runs | Espera mediana entre runs | Espera máx. | Mensagens/entrada | Teórico |
 |---|---:|---:|---:|---:|---:|
@@ -250,6 +337,8 @@ Execução local em 2026-11-04 (Kafka 3.7.2, RF=1, Python 3.14.4,
 | `high-contention` (N=5) | 3/3 | 2,248 s | 3,528 s | 12,0 | 12 |
 | `uneven-load` (N=5) | 3/3 | 0,730 s | 2,791 s | 12,0 | 12 |
 | `scale-10` (N=10) | 2/2 | 3,132 s | 5,676 s | 22,0 | 22 |
+| `extension-semaphore` (K=2) | 2/2 | 0,889 s | 1,737 s | 12,0 | 12 |
+| `extension-semaphore-k3` (K=3) | 2/2 | 0,327 s | 0,852 s | 12,0 | 12 |
 
 - **Control**: `max_active=5` e `overlaps=49…55` por run, como esperado sem
   sincronização. Com sincronização, `max_active=1` e `overlaps=0`.
@@ -261,6 +350,10 @@ Execução local em 2026-11-04 (Kafka 3.7.2, RF=1, Python 3.14.4,
   menores.
 - **Escala**: a espera mediana sobe de 2,25 s (N=5, alta contenção) para 3,13 s
   (N=10), coerente com mais pedidos disputando a mesma seção crítica.
+- **Extensão semáforo**: o observador registrou `max_active=2` (K=2) e
+  `max_active=3` (K=3), sempre com `overlaps=0` e zero violações. A espera cai
+  frente ao mutex sob a mesma carga (`think=0`), como esperado com mais
+  paralelismo; os cenários obrigatórios permanecem com `capacity=1`.
 
 Relatório completo: `output/agregado/report.md`; dados de máquina:
 `output/agregado/aggregate.csv`.
@@ -285,9 +378,30 @@ foi publicado **após o ACK do `END`**. O offset do `RELEASE` (7) é maior que o
 do `ACQUIRE` (1) porque, durante a seção crítica, outros pedidos (incluindo o
 próximo do próprio `c3`) já tinham sido publicados.
 
+### 9.2 Execução real na AWS
+
+Execução em 2026-11-09 na infraestrutura de 4 VMs (3 brokers + `monitor`),
+com Kafka 3.7.2 em KRaft, **RF=3**, `min.insync.replicas=2` e tópico de 1
+partição. Instâncias usadas: 3 brokers `c7i-flex.large` (2 vCPU / 4 GB) e
+`monitor` `m7i-flex.large` (2 vCPU / 8 GB). A `monitor` usou Ubuntu 24.04.5,
+Python 3.12.3 e `confluent-kafka==2.15.1`. O preflight remoto passou e os
+**14/14 runs dos 5 cenários obrigatórios** passaram em V1–V8.
+
+| Cenário | Runs | Espera mediana entre runs | Espera máx. | Mensagens/entrada | Teórico |
+|---|---:|---:|---:|---:|---:|
+| `control-no-sync` | 3/3 | 0,0001 s | 0,0010 s | — | — |
+| `normal` (N=5) | 3/3 | 0,121 s | 2,806 s | 12,0 | 12 |
+| `high-contention` (N=5) | 3/3 | 2,354 s | 3,568 s | 12,0 | 12 |
+| `uneven-load` (N=5) | 3/3 | 0,790 s | 2,594 s | 12,0 | 12 |
+| `scale-10` (N=10) | 2/2 | 3,113 s | 5,623 s | 22,0 | 22 |
+
+O `meta.json` de cada run registra `partition_detail` com réplicas `[1, 2, 3]`
+e ISR `[1, 2, 3]`, além de `min.insync.replicas=2` e `cleanup.policy=delete`.
+Evidência: `output/remote-20261109-165021/`.
+
 ## 10. Decisões e limitações
 
-- Decisões detalhadas em [`DECISIONES.md`](DECISIONES.md) (D1–D10).
+- Decisões detalhadas em [`DECISIONES.md`](DECISIONES.md) (D1–D13).
 - O TP2 não implementa falhas, recuperação, replicação de estado nem consenso;
   assume ausência de perdas durante os experimentos, como pede a spec.
 - `COMMITTED` significa "terminou o acesso simulado", não persistência.

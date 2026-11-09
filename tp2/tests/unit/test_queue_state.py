@@ -146,6 +146,30 @@ def test_wait_until_position_allows_first_k() -> None:
     assert not state.wait_until_position("sync-3", "r3", limit=2, timeout=0.05)
 
 
+def test_semaphore_release_allowed_inside_window() -> None:
+    state = QueueState(capacity=2)
+    state.apply_acquire(0, "sync-1", "r1")
+    state.apply_acquire(1, "sync-2", "r2")
+    state.apply_acquire(2, "sync-3", "r3")
+
+    # r2 não é cabeça, mas está na segunda posição autorizada (K=2).
+    assert state.apply_release(3, "sync-2", "r2") == RELEASED
+    assert [entry.request_id for entry in state.entries()] == ["r1", "r3"]
+    assert state.violations == ()
+
+
+def test_semaphore_release_outside_window_is_violation() -> None:
+    state = QueueState(capacity=2)
+    state.apply_acquire(0, "sync-1", "r1")
+    state.apply_acquire(1, "sync-2", "r2")
+    state.apply_acquire(2, "sync-3", "r3")
+
+    assert state.apply_release(3, "sync-3", "r3") == INVARIANT_VIOLATION
+    assert state.violations[0]["queue_position"] == 2
+    assert state.violations[0]["capacity"] == 2
+    assert [entry.request_id for entry in state.entries()] == ["r1", "r2"]
+
+
 def test_semaphore_capacity_authorizes_k_and_blocks_the_rest() -> None:
     log: list[ProtocolMessage] = []
     state = QueueState()

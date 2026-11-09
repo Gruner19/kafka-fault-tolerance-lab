@@ -177,17 +177,18 @@ def write_report(path: Path, rows: list[dict], root: Path) -> None:
     lines.append("## Visão geral")
     lines.append("")
     lines.append(
-        "| Cenário | Runs | PASS | Nós | Clientes | Pedidos (mediana) | "
+        "| Cenário | Runs | PASS | K | Nós | Clientes | Pedidos (mediana) | "
         "Espera mediana (s) | Espera mín (s) | Espera máx (s) |"
     )
-    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for row in rows:
         lines.append(
-            "| {scenario} | {runs} | {passed} | {nodes} | {clients} | {requests} | "
+            "| {scenario} | {runs} | {passed} | {capacity} | {nodes} | {clients} | {requests} | "
             "{med} | {low} | {high} |".format(
                 scenario=row["scenario"],
                 runs=row["runs"],
                 passed=row["passed"],
+                capacity=row["capacity"],
                 nodes=",".join(str(n) for n in row["num_nodes"]),
                 clients=",".join(str(c) for c in row["num_clients"]),
                 requests=_fmt(row["requests_total_median"], 1),
@@ -196,6 +197,11 @@ def write_report(path: Path, rows: list[dict], root: Path) -> None:
                 high=_fmt(row["wait_max_across_runs_s"]),
             )
         )
+    lines.append("")
+    lines.append(
+        "`K=1` corresponde ao mutex obrigatório sobre `R`; `K>1` identifica a "
+        "extensão semáforo, executada em etapa separada."
+    )
     lines.append("")
 
     lines.append("## Mensagens por entrada")

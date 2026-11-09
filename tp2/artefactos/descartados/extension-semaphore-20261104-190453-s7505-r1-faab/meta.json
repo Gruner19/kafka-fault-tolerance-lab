@@ -1,0 +1,155 @@
+{
+  "name": "extension-semaphore",
+  "run_id": "extension-semaphore-20261104-190453-s7505-r1-faab",
+  "repetition": 1,
+  "seed": 7505,
+  "num_nodes": 5,
+  "num_clients": 5,
+  "sync_enabled": true,
+  "capacity": 2,
+  "expect_violation": false,
+  "requests_total": 59,
+  "clients": [
+    {
+      "client_id": "c1",
+      "requests": 13,
+      "think_time": [
+        0.0,
+        0.0
+      ],
+      "node_index": 1
+    },
+    {
+      "client_id": "c2",
+      "requests": 10,
+      "think_time": [
+        0.0,
+        0.0
+      ],
+      "node_index": 2
+    },
+    {
+      "client_id": "c3",
+      "requests": 12,
+      "think_time": [
+        0.0,
+        0.0
+      ],
+      "node_index": 3
+    },
+    {
+      "client_id": "c4",
+      "requests": 10,
+      "think_time": [
+        0.0,
+        0.0
+      ],
+      "node_index": 4
+    },
+    {
+      "client_id": "c5",
+      "requests": 14,
+      "think_time": [
+        0.0,
+        0.0
+      ],
+      "node_index": 5
+    }
+  ],
+  "cs_duration": [
+    0.2,
+    1.0
+  ],
+  "think_time": [
+    0.0,
+    0.0
+  ],
+  "bootstrap": "localhost:9092",
+  "replication_factor": 1,
+  "min_insync_replicas": 1,
+  "retention_ms": 86400000,
+  "seeds": {
+    "base": 7505,
+    "clients": {
+      "c1": 15786765165061095102,
+      "c2": 2221685215449623794,
+      "c3": 17021713747743900744,
+      "c4": 15831649800996062332,
+      "c5": 1584419322410543536
+    },
+    "nodes": {
+      "sync-1": 16221072703172680017,
+      "sync-2": 2112875114802960495,
+      "sync-3": 15609063492065032799,
+      "sync-4": 15289715357220649082,
+      "sync-5": 5029523319923996530
+    }
+  },
+  "versions": {
+    "python": "3.14.4",
+    "platform": "Linux-7.0.0-38-generic-x86_64-desconocido-with-glibc2.43",
+    "confluent_kafka": "2.15.1",
+    "librdkafka": "('2.15.1', 34537983)"
+  },
+  "git_commit": "c3b3b22a1a84e8211585a7d71f3a16aa0dc99601",
+  "hostname": "gruner-sanchez-HP-Laptop-14-ck0xxx",
+  "started_utc": "2026-11-04T22:04:53.618Z",
+  "topic": {
+    "name": "r-events-extension-semaphore-20261104-190453-s7505-r1-faab",
+    "partitions": 1,
+    "replication_factor": 1,
+    "created": true,
+    "configs": {
+      "compression.type": "producer",
+      "leader.replication.throttled.replicas": "",
+      "remote.storage.enable": "false",
+      "message.downconversion.enable": "true",
+      "min.insync.replicas": "1",
+      "segment.jitter.ms": "0",
+      "local.retention.ms": "-2",
+      "cleanup.policy": "delete",
+      "flush.ms": "9223372036854775807",
+      "follower.replication.throttled.replicas": "",
+      "segment.bytes": "1073741824",
+      "retention.ms": "86400000",
+      "flush.messages": "9223372036854775807",
+      "message.format.version": "3.0-IV1",
+      "max.compaction.lag.ms": "9223372036854775807",
+      "file.delete.delay.ms": "60000",
+      "max.message.bytes": "1048588",
+      "min.compaction.lag.ms": "0",
+      "message.timestamp.type": "CreateTime",
+      "local.retention.bytes": "-2",
+      "preallocate": "false",
+      "min.cleanable.dirty.ratio": "0.5",
+      "index.interval.bytes": "4096",
+      "unclean.leader.election.enable": "false",
+      "retention.bytes": "-1",
+      "delete.retention.ms": "86400000",
+      "message.timestamp.after.max.ms": "9223372036854775807",
+      "message.timestamp.before.max.ms": "9223372036854775807",
+      "segment.ms": "604800000",
+      "message.timestamp.difference.max.ms": "9223372036854775807",
+      "segment.index.bytes": "10485760"
+    },
+    "partition_detail": [
+      {
+        "id": 0,
+        "leader": 1,
+        "replicas": [
+          1
+        ],
+        "isr": [
+          1
+        ]
+      }
+    ]
+  },
+  "load_started_utc": "2026-11-04T22:04:54.180Z",
+  "load_finished_utc": "2026-11-04T22:05:14.482Z",
+  "finished_utc": "2026-11-04T22:05:17.697Z",
+  "duration_s": 24.079,
+  "load_duration_s": 20.302,
+  "kafka_log_records": 118,
+  "verification_ok": false
+}
