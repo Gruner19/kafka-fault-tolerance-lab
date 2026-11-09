@@ -1,0 +1,51 @@
+{
+  "scenario": "control-no-sync",
+  "run_id": "control-no-sync-20261104-184248-s3101-r1-971f",
+  "repetition": 1,
+  "seed": 3101,
+  "sync_enabled": false,
+  "capacity": 1,
+  "requests_total": 52,
+  "completed": 52,
+  "duration_s": 12.176,
+  "load_duration_s": 8.076,
+  "waits_s": {
+    "count": 52,
+    "min": 0.000151858,
+    "median": 0.000312458,
+    "max": 0.004494762
+  },
+  "accesses_per_client": {
+    "c1": 10,
+    "c2": 10,
+    "c3": 12,
+    "c4": 10,
+    "c5": 10
+  },
+  "cs_duration_s": [
+    0.2,
+    1.0
+  ],
+  "think_time_s": [
+    0.0,
+    0.05
+  ],
+  "protocol_published": {
+    "sync-1": 0,
+    "sync-2": 0,
+    "sync-3": 0,
+    "sync-4": 0,
+    "sync-5": 0
+  },
+  "protocol_delivered": {
+    "sync-1": 0,
+    "sync-2": 0,
+    "sync-3": 0,
+    "sync-4": 0,
+    "sync-5": 0
+  },
+  "messages_per_entry_observed": 0.0,
+  "messages_per_entry_theoretical": 12,
+  "topic": "r-events-control-no-sync-20261104-184248-s3101-r1-971f",
+  "verification_ok": true
+}

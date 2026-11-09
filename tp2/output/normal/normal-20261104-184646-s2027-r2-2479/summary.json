@@ -1,0 +1,51 @@
+{
+  "scenario": "normal",
+  "run_id": "normal-20261104-184646-s2027-r2-2479",
+  "repetition": 2,
+  "seed": 2027,
+  "sync_enabled": true,
+  "capacity": 1,
+  "requests_total": 199,
+  "completed": 199,
+  "duration_s": 188.28,
+  "load_duration_s": 184.471,
+  "waits_s": {
+    "count": 199,
+    "min": 0.001307397,
+    "median": 0.146893803,
+    "max": 2.813484368
+  },
+  "accesses_per_client": {
+    "c1": 50,
+    "c2": 29,
+    "c3": 44,
+    "c4": 46,
+    "c5": 30
+  },
+  "cs_duration_s": [
+    0.2,
+    1.0
+  ],
+  "think_time_s": [
+    1.0,
+    5.0
+  ],
+  "protocol_published": {
+    "sync-1": 100,
+    "sync-2": 58,
+    "sync-3": 88,
+    "sync-4": 92,
+    "sync-5": 60
+  },
+  "protocol_delivered": {
+    "sync-1": 398,
+    "sync-2": 398,
+    "sync-3": 398,
+    "sync-4": 398,
+    "sync-5": 398
+  },
+  "messages_per_entry_observed": 12.0,
+  "messages_per_entry_theoretical": 12,
+  "topic": "r-events-normal-20261104-184646-s2027-r2-2479",
+  "verification_ok": true
+}

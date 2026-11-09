@@ -1,0 +1,66 @@
+{
+  "scenario": "scale-10",
+  "run_id": "scale-10-20261104-185858-s6405-r2-01c9",
+  "repetition": 2,
+  "seed": 6405,
+  "sync_enabled": true,
+  "capacity": 1,
+  "requests_total": 119,
+  "completed": 119,
+  "duration_s": 77.528,
+  "load_duration_s": 70.715,
+  "waits_s": {
+    "count": 119,
+    "min": 0.00177987,
+    "median": 2.762564213,
+    "max": 5.314695626
+  },
+  "accesses_per_client": {
+    "c1": 10,
+    "c10": 14,
+    "c2": 11,
+    "c3": 10,
+    "c4": 10,
+    "c5": 13,
+    "c6": 11,
+    "c7": 12,
+    "c8": 13,
+    "c9": 15
+  },
+  "cs_duration_s": [
+    0.2,
+    1.0
+  ],
+  "think_time_s": [
+    1.0,
+    3.0
+  ],
+  "protocol_published": {
+    "sync-1": 20,
+    "sync-10": 28,
+    "sync-2": 22,
+    "sync-3": 20,
+    "sync-4": 20,
+    "sync-5": 26,
+    "sync-6": 22,
+    "sync-7": 24,
+    "sync-8": 26,
+    "sync-9": 30
+  },
+  "protocol_delivered": {
+    "sync-1": 238,
+    "sync-10": 238,
+    "sync-2": 238,
+    "sync-3": 238,
+    "sync-4": 238,
+    "sync-5": 238,
+    "sync-6": 238,
+    "sync-7": 238,
+    "sync-8": 238,
+    "sync-9": 238
+  },
+  "messages_per_entry_observed": 22.0,
+  "messages_per_entry_theoretical": 22,
+  "topic": "r-events-scale-10-20261104-185858-s6405-r2-01c9",
+  "verification_ok": true
+}

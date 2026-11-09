@@ -1,0 +1,51 @@
+{
+  "scenario": "uneven-load",
+  "run_id": "uneven-load-20261104-185635-s5305-r3-ec7d",
+  "repetition": 3,
+  "seed": 5305,
+  "sync_enabled": true,
+  "capacity": 1,
+  "requests_total": 82,
+  "completed": 82,
+  "duration_s": 53.939,
+  "load_duration_s": 49.468,
+  "waits_s": {
+    "count": 82,
+    "min": 0.00134587,
+    "median": 0.7300040675,
+    "max": 2.443959498
+  },
+  "accesses_per_client": {
+    "c1": 40,
+    "c2": 11,
+    "c3": 10,
+    "c4": 11,
+    "c5": 10
+  },
+  "cs_duration_s": [
+    0.2,
+    1.0
+  ],
+  "think_time_s": [
+    1.0,
+    3.0
+  ],
+  "protocol_published": {
+    "sync-1": 80,
+    "sync-2": 22,
+    "sync-3": 20,
+    "sync-4": 22,
+    "sync-5": 20
+  },
+  "protocol_delivered": {
+    "sync-1": 164,
+    "sync-2": 164,
+    "sync-3": 164,
+    "sync-4": 164,
+    "sync-5": 164
+  },
+  "messages_per_entry_observed": 12.0,
+  "messages_per_entry_theoretical": 12,
+  "topic": "r-events-uneven-load-20261104-185635-s5305-r3-ec7d",
+  "verification_ok": true
+}

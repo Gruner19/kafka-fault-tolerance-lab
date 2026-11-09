@@ -1,5 +1,10 @@
 # Experimentación
 output/
+!tp2/output/
+tp2/output/remote-*/
+tp2/output/prueba-*/
+tp2/output/fase*/
+!tp2/output/agregado/
 *.pyc
 __pycache__/
 

@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "checks": [
+    {
+      "name": "brokers",
+      "ok": true,
+      "detail": [
+        {
+          "id": 1,
+          "host": "localhost",
+          "port": 9092
+        }
+      ]
+    },
+    {
+      "name": "topic_single_partition",
+      "ok": true,
+      "detail": {
+        "topic": "tp2-preflight-fb3f8bab",
+        "partitions": 1,
+        "created": true
+      }
+    },
+    {
+      "name": "topic_delete",
+      "ok": true,
+      "detail": "tp2-preflight-fb3f8bab"
+    },
+    {
+      "name": "python",
+      "ok": true,
+      "detail": {
+        "python": "3.14.4",
+        "platform": "Linux-7.0.0-38-generic-x86_64-desconocido-with-glibc2.43",
+        "confluent_kafka": "2.15.1",
+        "librdkafka": "('2.15.1', 34537983)"
+      }
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "ok": true,
+  "scenario": "normal",
+  "run_id": "normal-20261104-184646-s2027-r2-2479",
+  "checks": [
+    {
+      "name": "V1",
+      "ok": true,
+      "detail": {
+        "max_active": 1,
+        "overlaps": 0,
+        "capacity": 1
+      }
+    },
+    {
+      "name": "V2",
+      "ok": true,
+      "detail": {
+        "requested": 199,
+        "committed_clients": 199,
+        "committed_nodes": 199,
+        "requests_total": 199,
+        "missing": [],
+        "duplicated": []
+      }
+    },
+    {
+      "name": "V3",
+      "ok": true,
+      "detail": {
+        "enters": 199,
+        "duplicated": []
+      }
+    },
+    {
+      "name": "V4",
+      "ok": true,
+      "detail": {
+        "acquires": 199,
+        "begins": 199,
+        "first_mismatch": null
+      }
+    },
+    {
+      "name": "V5",
+      "ok": true,
+      "detail": {
+        "nodes": 5,
+        "delivered": {
+          "sync-1": 398,
+          "sync-2": 398,
+          "sync-3": 398,
+          "sync-4": 398,
+          "sync-5": 398
+        },
+        "digests_equal": true,
+        "kafka_log_records": 398,
+        "kafka_offsets_contiguous": true,
+        "expected_digest": "4432ad5ef29dde15211221eb4d16170608504a92e21703ba28c811d238a6d658",
+        "ready_start_offsets": {
+          "sync-1": 0,
+          "sync-2": 0,
+          "sync-3": 0,
+          "sync-4": 0,
+          "sync-5": 0
+        },
+        "readiness_known": true
+      }
+    },
+    {
+      "name": "V6",
+      "ok": true,
+      "detail": {
+        "invariant_violations": 0,
+        "release_outside_window": [],
+        "capacity": 1
+      }
+    },
+    {
+      "name": "V7",
+      "ok": true,
+      "detail": {
+        "name": "r-events-normal-20261104-184646-s2027-r2-2479",
+        "partitions": 1,
+        "replication_factor": 1,
+        "created": true,
+        "configs": {
+          "compression.type": "producer",
+          "leader.replication.throttled.replicas": "",
+          "remote.storage.enable": "false",
+          "message.downconversion.enable": "true",
+          "min.insync.replicas": "1",
+          "segment.jitter.ms": "0",
+          "local.retention.ms": "-2",
+          "cleanup.policy": "delete",
+          "flush.ms": "9223372036854775807",
+          "follower.replication.throttled.replicas": "",
+          "segment.bytes": "1073741824",
+          "retention.ms": "86400000",
+          "flush.messages": "9223372036854775807",
+          "message.format.version": "3.0-IV1",
+          "max.compaction.lag.ms": "9223372036854775807",
+          "file.delete.delay.ms": "60000",
+          "max.message.bytes": "1048588",
+          "min.compaction.lag.ms": "0",
+          "message.timestamp.type": "CreateTime",
+          "local.retention.bytes": "-2",
+          "preallocate": "false",
+          "min.cleanable.dirty.ratio": "0.5",
+          "index.interval.bytes": "4096",
+          "unclean.leader.election.enable": "false",
+          "retention.bytes": "-1",
+          "delete.retention.ms": "86400000",
+          "message.timestamp.after.max.ms": "9223372036854775807",
+          "message.timestamp.before.max.ms": "9223372036854775807",
+          "segment.ms": "604800000",
+          "message.timestamp.difference.max.ms": "9223372036854775807",
+          "segment.index.bytes": "10485760"
+        },
+        "cleanup_delete": true,
+        "isr_ok": true,
+        "replicas_ok": true
+      }
+    },
+    {
+      "name": "V8",
+      "ok": true,
+      "detail": {
+        "informative": true,
+        "observed_max_s": 2.813484368,
+        "theoretical_bound_s": 198.0
+      }
+    }
+  ],
+  "metrics": {
+    "waits_s": {
+      "count": 199,
+      "min": 0.001307397,
+      "median": 0.146893803,
+      "max": 2.813484368
+    },
+    "max_active": 1,
+    "overlaps": 0
+  }
+}

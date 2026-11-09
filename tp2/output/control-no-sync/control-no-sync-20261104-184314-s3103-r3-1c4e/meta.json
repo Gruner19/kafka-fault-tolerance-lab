@@ -1,0 +1,143 @@
+{
+  "name": "control-no-sync",
+  "run_id": "control-no-sync-20261104-184314-s3103-r3-1c4e",
+  "repetition": 3,
+  "seed": 3103,
+  "num_nodes": 5,
+  "num_clients": 5,
+  "sync_enabled": false,
+  "capacity": 1,
+  "expect_violation": true,
+  "requests_total": 57,
+  "clients": [
+    {
+      "client_id": "c1",
+      "requests": 12,
+      "think_time": [
+        0.0,
+        0.05
+      ],
+      "node_index": 1
+    },
+    {
+      "client_id": "c2",
+      "requests": 12,
+      "think_time": [
+        0.0,
+        0.05
+      ],
+      "node_index": 2
+    },
+    {
+      "client_id": "c3",
+      "requests": 10,
+      "think_time": [
+        0.0,
+        0.05
+      ],
+      "node_index": 3
+    },
+    {
+      "client_id": "c4",
+      "requests": 12,
+      "think_time": [
+        0.0,
+        0.05
+      ],
+      "node_index": 4
+    },
+    {
+      "client_id": "c5",
+      "requests": 11,
+      "think_time": [
+        0.0,
+        0.05
+      ],
+      "node_index": 5
+    }
+  ],
+  "cs_duration": [
+    0.2,
+    1.0
+  ],
+  "think_time": [
+    0.0,
+    0.05
+  ],
+  "bootstrap": "localhost:9092",
+  "replication_factor": 1,
+  "min_insync_replicas": 1,
+  "retention_ms": 86400000,
+  "seeds": {
+    "base": 3103,
+    "clients": {
+      "c1": 7497925480485924537,
+      "c2": 6962068157044230761,
+      "c3": 16318491790991096745,
+      "c4": 6586227743351553397,
+      "c5": 8092692105360700853
+    },
+    "nodes": {
+      "sync-1": 3091105727639410335,
+      "sync-2": 2169912155383492265,
+      "sync-3": 17411217210715378380,
+      "sync-4": 6535922134564850010,
+      "sync-5": 9799140874384183835
+    }
+  },
+  "versions": {
+    "python": "3.14.4",
+    "platform": "Linux-7.0.0-38-generic-x86_64-desconocido-with-glibc2.43",
+    "confluent_kafka": "2.15.1",
+    "librdkafka": "('2.15.1', 34537983)"
+  },
+  "git_commit": "089270d4c0207d7c32a2a2cf225dbe8df8ef475f",
+  "hostname": "gruner-sanchez-HP-Laptop-14-ck0xxx",
+  "started_utc": "2026-11-04T21:43:14.472Z",
+  "topic": {
+    "name": "r-events-control-no-sync-20261104-184314-s3103-r3-1c4e",
+    "partitions": 1,
+    "replication_factor": 1,
+    "created": true,
+    "configs": {
+      "compression.type": "producer",
+      "leader.replication.throttled.replicas": "",
+      "remote.storage.enable": "false",
+      "message.downconversion.enable": "true",
+      "min.insync.replicas": "1",
+      "segment.jitter.ms": "0",
+      "local.retention.ms": "-2",
+      "cleanup.policy": "delete",
+      "flush.ms": "9223372036854775807",
+      "follower.replication.throttled.replicas": "",
+      "segment.bytes": "1073741824",
+      "retention.ms": "86400000",
+      "flush.messages": "9223372036854775807",
+      "message.format.version": "3.0-IV1",
+      "max.compaction.lag.ms": "9223372036854775807",
+      "file.delete.delay.ms": "60000",
+      "max.message.bytes": "1048588",
+      "min.compaction.lag.ms": "0",
+      "message.timestamp.type": "CreateTime",
+      "local.retention.bytes": "-2",
+      "preallocate": "false",
+      "min.cleanable.dirty.ratio": "0.5",
+      "index.interval.bytes": "4096",
+      "unclean.leader.election.enable": "false",
+      "retention.bytes": "-1",
+      "delete.retention.ms": "86400000",
+      "message.timestamp.after.max.ms": "9223372036854775807",
+      "message.timestamp.before.max.ms": "9223372036854775807",
+      "segment.ms": "604800000",
+      "message.timestamp.difference.max.ms": "9223372036854775807",
+      "segment.index.bytes": "10485760"
+    }
+  },
+  "load_started_utc": "2026-11-04T21:43:15.082Z",
+  "load_finished_utc": "2026-11-04T21:43:24.026Z",
+  "finished_utc": "2026-11-04T21:43:27.592Z",
+  "duration_s": 13.12,
+  "load_duration_s": 8.944,
+  "kafka_log_records": 0,
+  "verification_ok": true
+}

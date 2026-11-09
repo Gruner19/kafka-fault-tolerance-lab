@@ -1,0 +1,8 @@
+scenario,runs,passed,sync_enabled,capacity,num_nodes,num_clients,requests_total_median,completed_median,duration_s_median,load_duration_s_median,wait_median_across_runs_s,wait_min_across_runs_s,wait_max_across_runs_s,messages_per_entry_observed_mean,messages_per_entry_theoretical,accesses_total
+control-no-sync,3,3,False,1,5,5,54.0,54.0,12.496,8.076,0.0002,0.0001,0.0045,,,163
+extension-semaphore,2,2,True,2,5,5,59.0,59.0,24.6325,20.0895,0.8891,0.0028,1.7372,12.0,12,118
+extension-semaphore-k3,2,2,True,3,5,5,65.5,65.5,18.7325,14.801,0.3274,0.0014,0.8523,12.0,12,131
+high-contention,3,3,True,1,5,5,62.0,62.0,41.624,37.866,2.2478,0.0022,3.5278,12.0,12,185
+normal,3,3,True,1,5,5,192.0,192.0,188.28,184.471,0.1375,0.0013,2.8135,12.0,12,545
+scale-10,2,2,True,1,10,10,123.5,123.5,82.9795,76.344,3.1318,0.0018,5.6756,22.0,22,247
+uneven-load,3,3,True,1,5,5,86.0,86.0,56.127,52.372,0.73,0.0013,2.7911,12.0,12,255

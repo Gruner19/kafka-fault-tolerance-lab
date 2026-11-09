@@ -1,0 +1,51 @@
+{
+  "scenario": "high-contention",
+  "run_id": "high-contention-20261104-185313-s4203-r2-962d",
+  "repetition": 2,
+  "seed": 4203,
+  "sync_enabled": true,
+  "capacity": 1,
+  "requests_total": 63,
+  "completed": 63,
+  "duration_s": 46.821,
+  "load_duration_s": 42.865,
+  "waits_s": {
+    "count": 63,
+    "min": 0.003314248,
+    "median": 2.628439024,
+    "max": 3.509701209
+  },
+  "accesses_per_client": {
+    "c1": 11,
+    "c2": 12,
+    "c3": 15,
+    "c4": 13,
+    "c5": 12
+  },
+  "cs_duration_s": [
+    0.2,
+    1.0
+  ],
+  "think_time_s": [
+    0.0,
+    0.0
+  ],
+  "protocol_published": {
+    "sync-1": 22,
+    "sync-2": 24,
+    "sync-3": 30,
+    "sync-4": 26,
+    "sync-5": 24
+  },
+  "protocol_delivered": {
+    "sync-1": 126,
+    "sync-2": 126,
+    "sync-3": 126,
+    "sync-4": 126,
+    "sync-5": 126
+  },
+  "messages_per_entry_observed": 12.0,
+  "messages_per_entry_theoretical": 12,
+  "topic": "r-events-high-contention-20261104-185313-s4203-r2-962d",
+  "verification_ok": true
+}

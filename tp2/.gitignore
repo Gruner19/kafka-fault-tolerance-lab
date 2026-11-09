@@ -1,0 +1,16 @@
+# TP2 — resultados de runs individuales (no versionar, se regeneran)
+output/remote-*/
+output/prueba-*/
+output/fase*/
+
+# Entornos Python locales
+.venv/
+venv/
+.env/
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Logs JSONL de runs individuales (evidencia pesada, no versionar).
+# La evidencia seleccionada (output/agregado/evidence_access.md) sí se versiona.
+*.jsonl

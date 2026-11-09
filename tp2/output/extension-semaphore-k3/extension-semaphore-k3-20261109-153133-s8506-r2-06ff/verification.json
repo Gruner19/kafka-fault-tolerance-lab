@@ -1,0 +1,156 @@
+{
+  "ok": true,
+  "scenario": "extension-semaphore-k3",
+  "run_id": "extension-semaphore-k3-20261109-153133-s8506-r2-06ff",
+  "checks": [
+    {
+      "name": "V1",
+      "ok": true,
+      "detail": {
+        "max_active": 3,
+        "overlaps": 0,
+        "capacity": 3
+      }
+    },
+    {
+      "name": "V2",
+      "ok": true,
+      "detail": {
+        "requested": 64,
+        "committed_clients": 64,
+        "committed_nodes": 64,
+        "requests_total": 64,
+        "missing": [],
+        "duplicated": []
+      }
+    },
+    {
+      "name": "V3",
+      "ok": true,
+      "detail": {
+        "enters": 64,
+        "duplicated": []
+      }
+    },
+    {
+      "name": "V4",
+      "ok": true,
+      "detail": {
+        "skipped": "capacity>1",
+        "capacity": 3
+      }
+    },
+    {
+      "name": "V5",
+      "ok": true,
+      "detail": {
+        "nodes": 5,
+        "delivered": {
+          "sync-1": 128,
+          "sync-2": 128,
+          "sync-3": 128,
+          "sync-4": 128,
+          "sync-5": 128
+        },
+        "digests_equal": true,
+        "kafka_log_records": 128,
+        "kafka_offsets_contiguous": true,
+        "expected_digest": "0fcaa04cabc4d6dfd6458e05dcb5996dfbbe37f58b89d5fd071eb15c73ef7f5c",
+        "ready_start_offsets": {
+          "sync-1": 0,
+          "sync-2": 0,
+          "sync-3": 0,
+          "sync-4": 0,
+          "sync-5": 0
+        },
+        "readiness_known": true
+      }
+    },
+    {
+      "name": "V6",
+      "ok": true,
+      "detail": {
+        "invariant_violations": 0,
+        "release_outside_window": [],
+        "capacity": 3
+      }
+    },
+    {
+      "name": "V7",
+      "ok": true,
+      "detail": {
+        "name": "r-events-extension-semaphore-k3-20261109-153133-s8506-r2-06ff",
+        "partitions": 1,
+        "replication_factor": 1,
+        "created": true,
+        "configs": {
+          "compression.type": "producer",
+          "leader.replication.throttled.replicas": "",
+          "remote.storage.enable": "false",
+          "message.downconversion.enable": "true",
+          "min.insync.replicas": "1",
+          "segment.jitter.ms": "0",
+          "local.retention.ms": "-2",
+          "cleanup.policy": "delete",
+          "flush.ms": "9223372036854775807",
+          "follower.replication.throttled.replicas": "",
+          "segment.bytes": "1073741824",
+          "retention.ms": "86400000",
+          "flush.messages": "9223372036854775807",
+          "message.format.version": "3.0-IV1",
+          "max.compaction.lag.ms": "9223372036854775807",
+          "file.delete.delay.ms": "60000",
+          "max.message.bytes": "1048588",
+          "min.compaction.lag.ms": "0",
+          "message.timestamp.type": "CreateTime",
+          "local.retention.bytes": "-2",
+          "preallocate": "false",
+          "min.cleanable.dirty.ratio": "0.5",
+          "index.interval.bytes": "4096",
+          "unclean.leader.election.enable": "false",
+          "retention.bytes": "-1",
+          "delete.retention.ms": "86400000",
+          "message.timestamp.after.max.ms": "9223372036854775807",
+          "message.timestamp.before.max.ms": "9223372036854775807",
+          "segment.ms": "604800000",
+          "message.timestamp.difference.max.ms": "9223372036854775807",
+          "segment.index.bytes": "10485760"
+        },
+        "partition_detail": [
+          {
+            "id": 0,
+            "leader": 1,
+            "replicas": [
+              1
+            ],
+            "isr": [
+              1
+            ]
+          }
+        ],
+        "cleanup_delete": true,
+        "isr_ok": true,
+        "replicas_ok": true
+      }
+    },
+    {
+      "name": "V8",
+      "ok": true,
+      "detail": {
+        "informative": true,
+        "observed_max_s": 0.852283623,
+        "theoretical_bound_s": 63.0
+      }
+    }
+  ],
+  "metrics": {
+    "waits_s": {
+      "count": 64,
+      "min": 0.001355359,
+      "median": 0.3067833045,
+      "max": 0.852283623
+    },
+    "max_active": 3,
+    "overlaps": 0
+  }
+}
